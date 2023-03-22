@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\FileController;
 use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
@@ -23,3 +24,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::post('/auth/token', [TokenController::class, 'store']);
 Route::middleware('auth:sanctum')->get('/users', [UserController::class, 'index']);
 Route::middleware('auth:sanctum')->delete('/auth/token', [TokenController::class, 'destroy']);
+
+Route::middleware('auth:sanctum')->post('/files', [FileController::class, 'store']);
+Route::middleware('auth:sanctum')->get('/files', [FileController::class, 'index']);
