@@ -6,17 +6,11 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
         Schema::create('accounts', function (Blueprint $table) {
-            $table->id();
+            $table->string('number')->unique();
             $table->string('name');
-            $table->string('number');
             $table->enum('type', ['credit', 'debit', 'investment']);
             $table->timestamps();
             $table->softDeletes();

@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\FileUploadedEvent;
 use App\Http\Requests\StoreFileRequest;
 use App\Http\Resources\FileResource;
 use App\Models\File;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Storage;
 
 class FileController extends Controller
 {
@@ -19,10 +20,12 @@ class FileController extends Controller
     {
         $path = $request->file('file')->store('files');
 
-        File::create([
+        $file = File::create([
             'filename' => $path,
         ]);
 
-        return $path;
+        FileUploadedEvent::dispatch($file);
+
+        return $file;
     }
 }

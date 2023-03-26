@@ -15,12 +15,12 @@ return new class extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('account_id');
+            $table->string('account_number');
             $table->timestamp('transaction_date');
             $table->string('description');
             $table->double('amount');
             $table->timestamps();
-            $table->unique(['account_id', 'transaction_date', 'description', 'amount'], 'full');
+            $table->unique(['account_number', 'transaction_date', 'description', 'amount'], 'full');
         });
     }
 

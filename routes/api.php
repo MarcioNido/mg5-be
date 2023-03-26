@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\TokenController;
+use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -27,3 +28,5 @@ Route::middleware('auth:sanctum')->delete('/auth/token', [TokenController::class
 
 Route::middleware('auth:sanctum')->post('/files', [FileController::class, 'store']);
 Route::middleware('auth:sanctum')->get('/files', [FileController::class, 'index']);
+
+Route::middleware('auth:sanctum')->get('/transactions', [TransactionController::class, 'index']);

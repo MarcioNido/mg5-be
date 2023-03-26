@@ -9,7 +9,7 @@ class AccountSeeder extends Seeder
 {
     public function run()
     {
-        Account::factory()->debit()->create(['name' => 'Marcio RBC Chequing', 'number' => '06402-5031752']);
-        Account::factory()->debit()->create(['name' => 'Monica RBC Chequing', 'number' => '06402-5039466']);
+        Account::factory()->debit()->create(['number' => '06402-5031752', 'name' => 'Marcio RBC Chequing']);
+        Account::factory()->debit()->create(['number' => '06402-5039466', 'name' => 'Monica RBC Chequing']);
     }
 }
