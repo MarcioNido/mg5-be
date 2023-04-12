@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Events\FileUploadedEvent;
+use App\Events\TransactionsUpdatedEvent;
 use App\Services\FileReader\FileReaderFactory;
 use App\Services\FileReader\UnsupportedFileTypeException;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -19,5 +20,6 @@ class ProcessFileUploadedListener implements ShouldQueue
         $fileReader = FileReaderFactory::make($filePath);
         $fileReader->processFile();
         $event->file->update(['status' => 'complete']);
+        TransactionsUpdatedEvent::dispatch();
     }
 }

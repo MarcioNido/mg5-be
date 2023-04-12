@@ -9,7 +9,7 @@ return new class extends Migration
     public function up()
     {
         Schema::create('accounts', function (Blueprint $table) {
-            $table->string('number')->unique();
+            $table->string('account_number')->unique();
             $table->string('name');
             $table->enum('type', ['credit', 'debit', 'investment']);
             $table->timestamps();

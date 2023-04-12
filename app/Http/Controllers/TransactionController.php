@@ -6,13 +6,19 @@ use App\Http\Requests\StoreTransactionRequest;
 use App\Http\Requests\UpdateTransactionRequest;
 use App\Http\Resources\TransactionResource;
 use App\Models\Transaction;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class TransactionController extends Controller
 {
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
-        return TransactionResource::collection(Transaction::query()->latest('transaction_date')->limit(10)->get());
+        return TransactionResource::collection(
+            Transaction::filters($request->get("filter"))
+                ->orders($request->get("orderBy"))
+                ->latest('transaction_date')
+                ->paginate()
+        );
     }
 
     /**

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BalanceController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\TokenController;
 use App\Http\Controllers\TransactionController;
@@ -30,3 +31,4 @@ Route::middleware('auth:sanctum')->post('/files', [FileController::class, 'store
 Route::middleware('auth:sanctum')->get('/files', [FileController::class, 'index']);
 
 Route::middleware('auth:sanctum')->get('/transactions', [TransactionController::class, 'index']);
+Route::middleware('auth:sanctum')->get('/balances', [BalanceController::class, 'index']);

@@ -5,10 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * @property string $account_number
- */
-class Account extends Model
+class Balance extends Model
 {
     use HasFactory;
+
+    protected $fillable = ['account_number', 'year', 'month', 'final_balance'];
 }
