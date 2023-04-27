@@ -9,5 +9,9 @@ class Balance extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['account_number', 'year', 'month', 'final_balance'];
+    protected $fillable = [
+        "account_number",
+        "last_day_of_month",
+        "final_balance",
+    ];
 }

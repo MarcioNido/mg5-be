@@ -8,8 +8,17 @@ use Illuminate\Database\Eloquent\Model;
 class Transaction extends BaseModel
 {
     use HasFactory;
-
-    protected $fillable = ['account_number', 'transaction_date', 'description', 'amount'];
-
-    public $timestamps = ['transaction_date'];
+    protected $fillable = [
+        "account_number",
+        "transaction_date",
+        "description",
+        "amount",
+    ];
+    public $timestamps = ["transaction_date"];
+    protected array $allowedFilters = [
+        "account_number",
+        "transaction_date",
+        "description",
+        "amount",
+    ];
 }

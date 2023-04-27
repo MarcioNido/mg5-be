@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasPageSizeConfiguration;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -12,6 +13,8 @@ use Illuminate\Support\Str;
  */
 class BaseModel extends Model
 {
+    use HasPageSizeConfiguration;
+
     protected array $allowedFilters = [];
     protected array $allowedOrders = [];
 

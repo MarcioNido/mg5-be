@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      *
@@ -13,14 +12,13 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('balances', function (Blueprint $table) {
+        Schema::create("balances", function (Blueprint $table) {
             $table->id();
-            $table->string('account_number');
-            $table->unsignedInteger('year');
-            $table->unsignedInteger('month');
-            $table->double('final_balance');
+            $table->string("account_number");
+            $table->date("last_day_of_month")->nullable();
+            $table->double("final_balance");
             $table->timestamps();
-            $table->unique(['account_number', 'year', 'month']);
+            $table->unique(["account_number", "last_day_of_month"]);
         });
     }
 
@@ -31,6 +29,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('balances');
+        Schema::dropIfExists("balances");
     }
 };
