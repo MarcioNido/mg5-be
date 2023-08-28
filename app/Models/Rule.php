@@ -2,26 +2,16 @@
 
 namespace App\Models;
 
+use App\Traits\HasPageSizeConfiguration;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Transaction extends BaseModel
+class Rule extends BaseModel
 {
-    use HasFactory;
-    protected $fillable = [
-        "account_number",
-        "transaction_date",
-        "description",
-        "amount",
-        "category_id",
-    ];
-    public $timestamps = ["transaction_date"];
-    protected array $allowedFilters = [
-        "account_number",
-        "transaction_date",
-        "description",
-        "amount",
-    ];
+    use HasFactory, HasPageSizeConfiguration, SoftDeletes;
+
+    protected $fillable = ["content", "account_number", "category_id"];
 
     public function category(): BelongsTo
     {

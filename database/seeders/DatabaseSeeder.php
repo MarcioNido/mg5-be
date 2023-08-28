@@ -16,13 +16,11 @@ class DatabaseSeeder extends Seeder
     public function run()
     {
         User::factory()->create([
-            'name' => 'Admin',
-            'email' => 'admin@moneyguru.com',
-            'password' => Hash::make('12345678'),
+            "name" => "Admin",
+            "email" => "admin@moneyguru.com",
+            "password" => Hash::make("12345678"),
         ]);
 
-        $this->call([
-            AccountSeeder::class,
-        ]);
+        $this->call([AccountSeeder::class, CategorySeeder::class]);
     }
 }
