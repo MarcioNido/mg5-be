@@ -36,4 +36,37 @@ class Transaction extends BaseModel
             "account_number"
         );
     }
+
+    public function scopeBelongsToCategoryGroup($query, $categoryId): void
+    {
+        // special case for "uncategorized"
+        if ((int) $categoryId === -1) {
+            $query->whereNull("category_id");
+        }
+
+        $category = Category::query()->find($categoryId);
+        if (!$category) {
+            return;
+        }
+
+        // belong to category or any of the category children or any category children's children
+        $childrenIds = $category->children->pluck("id")->push($categoryId);
+        $childrenIds = $childrenIds->merge(
+            $category
+                ->children()
+                ->with("children")
+                ->get()
+                ->pluck("children")
+                ->flatten()
+                ->pluck("id")
+        );
+        $childrenIds = $childrenIds->unique();
+        $childrenIds = $childrenIds->values();
+        $childrenIds = $childrenIds->toArray();
+
+        $query->where(function ($query) use ($categoryId, $childrenIds) {
+            $query->orWhere("category_id", $categoryId);
+            $query->orWhereIn("category_id", $childrenIds);
+        });
+    }
 }

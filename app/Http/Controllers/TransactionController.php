@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\TransactionsUpdatedEvent;
 use App\Http\Requests\StoreTransactionRequest;
 use App\Http\Requests\UpdateTransactionRequest;
 use App\Http\Resources\TransactionResource;
@@ -32,6 +33,10 @@ class TransactionController extends Controller
             $transactions->where("transaction_date", "<=", $lastDayOfMonth);
         }
 
+        if (isset($filters["category_id"])) {
+            $transactions->belongsToCategoryGroup($filters["category_id"]);
+        }
+
         return TransactionResource::collection($transactions->paginate());
     }
 
@@ -46,6 +51,8 @@ class TransactionController extends Controller
         unset($validated["account"]);
 
         $transaction = Transaction::create($validated);
+        TransactionsUpdatedEvent::dispatch();
+
         return new TransactionResource($transaction);
     }
 
@@ -71,6 +78,9 @@ class TransactionController extends Controller
         unset($updatedTransaction["account"]);
 
         $transaction->update($updatedTransaction);
+
+        TransactionsUpdatedEvent::dispatch();
+
         return new TransactionResource($transaction->fresh());
     }
 

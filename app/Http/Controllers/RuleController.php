@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreRuleRequest;
 use App\Http\Requests\UpdateRuleRequest;
 use App\Http\Resources\RuleResource;
+use App\Jobs\ProcessRule;
 use App\Models\Rule;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -33,6 +34,9 @@ class RuleController extends Controller
         unset($validated["category"]);
 
         $rule = Rule::create($validated);
+
+        $this->dispatch(new ProcessRule($rule));
+
         return new RuleResource($rule);
     }
 
@@ -53,7 +57,10 @@ class RuleController extends Controller
         unset($validated["category"]);
 
         $rule->update($validated);
-        return new RuleResource($rule->refresh());
+
+        $this->dispatch(new ProcessRule($rule->refresh()));
+
+        return new RuleResource($rule);
     }
 
     public function destroy(Rule $rule): Response
