@@ -7,6 +7,8 @@ use App\Http\Controllers\FileController;
 use App\Http\Controllers\RuleController;
 use App\Http\Controllers\TokenController;
 use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\TransactionsBalanceController;
+use App\Http\Controllers\TransactionsSummaryController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -69,3 +71,18 @@ Route::middleware("auth:sanctum")
 Route::middleware("auth:sanctum")
     ->resource("/rules", RuleController::class)
     ->only(["index", "store", "show", "update", "destroy"]);
+
+Route::middleware("auth:sanctum")->get("/transactions/income/{month}/{year}", [
+    TransactionsSummaryController::class,
+    "monthlyIncome",
+]);
+
+Route::middleware("auth:sanctum")->get("/transactions/expense/{month}/{year}", [
+    TransactionsSummaryController::class,
+    "monthlyExpense",
+]);
+
+Route::middleware("auth:sanctum")->get("/transactions/balance/{month}/{year}", [
+    TransactionsBalanceController::class,
+    "monthlyBalance",
+]);
