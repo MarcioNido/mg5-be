@@ -9,32 +9,51 @@ class CategorySeeder extends Seeder
 {
     public function run()
     {
-        Category::factory(3)->create(["level" => 1]);
+        $income = Category::factory()->create([
+            "name" => "Income",
+            "type" => "income",
+            "level" => 1,
 
-        Category::query()
-            ->where("level", 1)
-            ->get()
-            ->each(function (Category $level1) {
-                Category::factory()
-                    ->count(3)
-                    ->create([
-                        "parent_id" => $level1->id,
-                        "type" => $level1->type,
-                        "level" => 2,
-                    ]);
-            });
+        ]);
 
-        Category::query()
-            ->where("level", 2)
-            ->get()
-            ->each(function (Category $level2) {
-                Category::factory()
-                    ->count(3)
-                    ->create([
-                        "parent_id" => $level2->id,
-                        "type" => $level2->type,
-                        "level" => 3,
-                    ]);
-            });
+        $grossIncome = Category::factory()->create([
+            "name" => "Gross Income",
+            "type" => "income",
+            "level" => 2,
+            "parent_id" => $income->id,
+        ]);
+
+        $deductions = Category::factory()->create([
+            "name" => "Deductions",
+            "type" => "deductions",
+            "level" => 1,
+        ]);
+
+        $taxes = Category::factory()->create([
+            "name" => "Taxes",
+            "type" => "deductions",
+            "level" => 2,
+            "parent_id" => $deductions->id,
+        ]);
+
+        $fixedExpenses = Category::factory()->create([
+            "name" => "Fixed Expenses",
+            "type" => "fixed expenses",
+            "level" => 1,
+        ]);
+
+        $variableExpenses = Category::factory()->create([
+            "name" => "Variable Expenses",
+            "type" => "variable expenses",
+            "level" => 1,
+        ]);
+
+        $financialTransactions = Category::factory()->create([
+            "name" => "Financial Transactions",
+            "type" => "financial transactions",
+            "level" => 1,
+        ]);
+
+
     }
 }

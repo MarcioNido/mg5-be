@@ -6,6 +6,8 @@ use App\Events\TransactionsUpdatedEvent;
 use App\Http\Requests\StoreTransactionRequest;
 use App\Http\Requests\UpdateTransactionRequest;
 use App\Http\Resources\TransactionResource;
+use App\Jobs\ProcessRule;
+use App\Models\Rule;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -47,8 +49,13 @@ class TransactionController extends Controller
         $validated["category_id"] = $validated["category"]["id"];
         $validated["account_number"] = $validated["account"]["account_number"];
 
+        if ($validated["rule_content"]) {
+            $this->storeRule($validated);
+        }
+
         unset($validated["category"]);
         unset($validated["account"]);
+        unset($validated["rule_content"]);
 
         $transaction = Transaction::create($validated);
         TransactionsUpdatedEvent::dispatch();
@@ -74,8 +81,13 @@ class TransactionController extends Controller
         $updatedTransaction["account_number"] =
             $updatedTransaction["account"]["account_number"];
 
+        if ($updatedTransaction["rule_content"]) {
+            $this->storeRule($updatedTransaction);
+        }
+
         unset($updatedTransaction["category"]);
         unset($updatedTransaction["account"]);
+        unset($updatedTransaction["rule_content"]);
 
         $transaction->update($updatedTransaction);
 
@@ -88,5 +100,17 @@ class TransactionController extends Controller
     {
         $transaction->delete();
         return response()->noContent();
+    }
+
+    private function storeRule(mixed $validated): void
+    {
+        /** @var Rule $rule */
+        $rule = Rule::query()->create([
+            "content" => $validated["rule_content"],
+            "account_number" => $validated["account_number"],
+            "category_id" => $validated["category_id"],
+        ]);
+
+        $this->dispatch(new ProcessRule($rule));
     }
 }

@@ -39,6 +39,7 @@ class StoreTransactionRequest extends FormRequest
                 "integer",
                 Rule::exists("categories", "id"),
             ],
+            "rule_content" => ["nullable", "string", "max:255"],
         ];
     }
 }
