@@ -14,6 +14,5 @@ class AccountSeeder extends Seeder
         Account::factory()->debit()->create(['account_number' => '06402-5039466', 'name' => 'Monica RBC Chequing']);
         Account::factory()->credit()->create(['account_number' => '4514093608902876', 'name' => 'Visa Avion RBC Marcio']);
         Account::factory()->credit()->create(['account_number' => '4514011823312671', 'name' => 'Visa Avion RBC Monica']);
-        Account::factory()->credit()->create(['account_number' => '06402-5039466', 'name' => 'Monica RBC Chequing']);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,17 +12,18 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Account extends Model
 {
-    use HasFactory;
+    use BelongsToTenant, HasFactory;
 
-    protected $primaryKey = "account_number";
-    protected $keyType = "string";
+    protected $primaryKey = 'account_number';
+
+    protected $keyType = 'string';
 
     public function transactions(): HasMany
     {
         return $this->hasMany(
             Transaction::class,
-            "account_number",
-            "account_number"
+            'account_number',
+            'account_number'
         );
     }
 }

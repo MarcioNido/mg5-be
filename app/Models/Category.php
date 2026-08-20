@@ -2,16 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Category extends BaseModel
 {
-    use HasFactory;
+    use BelongsToTenant, HasFactory;
 
-    protected $fillable = ["parent_id", "name", "level", "type"];
+    protected $fillable = ['parent_id', 'name', 'level', 'type'];
 
     public static function booted(): void
     {
@@ -22,12 +22,12 @@ class Category extends BaseModel
 
     public function parent(): BelongsTo
     {
-        return $this->belongsTo(Category::class, "parent_id");
+        return $this->belongsTo(Category::class, 'parent_id');
     }
 
     public function children(): HasMany
     {
-        return $this->hasMany(Category::class, "parent_id");
+        return $this->hasMany(Category::class, 'parent_id');
     }
 
     public function transactions(): HasMany

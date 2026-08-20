@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use App\Traits\HasPageSizeConfiguration;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,9 +10,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Rule extends BaseModel
 {
-    use HasFactory, HasPageSizeConfiguration, SoftDeletes;
+    use BelongsToTenant, HasFactory, HasPageSizeConfiguration, SoftDeletes;
 
-    protected $fillable = ["content", "account_number", "category_id"];
+    protected $fillable = ['content', 'account_number', 'category_id'];
 
     public function category(): BelongsTo
     {
@@ -22,8 +23,8 @@ class Rule extends BaseModel
     {
         return $this->belongsTo(
             Account::class,
-            "account_number",
-            "account_number"
+            'account_number',
+            'account_number'
         );
     }
 }

@@ -20,7 +20,7 @@ The current environment is:
 - PHP 8.4 for local and container environments.
 - MySQL with one shared database.
 
-Spatie Laravel Multitenancy v4 remains planned for the tenancy phase.
+Spatie Laravel Multitenancy v4.2 is configured for shared-database tenancy.
 
 ## Tenancy
 
@@ -49,6 +49,15 @@ imports, balances, and reconciliations.
 
 Tenant-aware queued jobs are required for CSV processing, rule processing, and
 balance recalculation.
+
+Authenticated API requests select a tenant with `X-Tenant-Slug`; `X-Tenant`
+is accepted as a compatibility alias. Requests without either header select
+`personal` until the tenant selector is added in the frontend phase. The
+membership middleware runs before route model binding, and all financial models
+fail closed when no current tenant exists.
+
+See [Phase 2 minimal tenancy](phase-2-minimal-tenancy.md) for migration,
+backup, compatibility, and verification details.
 
 ## Transaction model
 

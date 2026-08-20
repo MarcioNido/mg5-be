@@ -8,8 +8,9 @@ use App\Models\Transaction;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Spatie\Multitenancy\Jobs\TenantAware;
 
-class RecalculateBalancesListener implements ShouldQueue
+class RecalculateBalancesListener implements ShouldQueue, TenantAware
 {
     public function handle()
     {
@@ -23,16 +24,16 @@ class RecalculateBalancesListener implements ShouldQueue
     private function recalculateBalance(Account $account)
     {
         $monthlyBalances = Transaction::query()
-            ->where("account_number", $account->account_number)
-            ->groupBy(DB::raw("YEAR(transaction_date)"))
-            ->groupBy(DB::raw("MONTH(transaction_date)"))
+            ->where('account_number', $account->account_number)
+            ->groupBy(DB::raw('YEAR(transaction_date)'))
+            ->groupBy(DB::raw('MONTH(transaction_date)'))
             ->select([
-                DB::raw("YEAR(transaction_date) as year"),
-                DB::raw("MONTH(transaction_date) as month"),
-                DB::raw("SUM(amount) as balance"),
+                DB::raw('YEAR(transaction_date) as year'),
+                DB::raw('MONTH(transaction_date) as month'),
+                DB::raw('SUM(amount) as balance'),
             ])
-            ->orderBy("year")
-            ->orderBy("month")
+            ->orderBy('year')
+            ->orderBy('month')
             ->get();
 
         $balance = 0;
@@ -41,8 +42,8 @@ class RecalculateBalancesListener implements ShouldQueue
             $balance += $monthlyBalance->balance;
             Balance::query()->updateOrCreate(
                 [
-                    "account_number" => (string) $account->account_number,
-                    "last_day_of_month" => Carbon::create(
+                    'account_number' => (string) $account->account_number,
+                    'last_day_of_month' => Carbon::create(
                         $monthlyBalance->year,
                         $monthlyBalance->month
                     )
@@ -50,7 +51,7 @@ class RecalculateBalancesListener implements ShouldQueue
                         ->toDateString(),
                 ],
                 [
-                    "final_balance" => $balance,
+                    'final_balance' => $balance,
                 ]
             );
         }

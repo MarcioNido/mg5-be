@@ -5,6 +5,7 @@ use App\Http\Controllers\BalanceController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\RuleController;
+use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TokenController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionsBalanceController;
@@ -24,65 +25,70 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware("auth:sanctum")->get("/user", function (Request $request) {
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::post("/auth/token", [TokenController::class, "store"]);
-Route::middleware("auth:sanctum")->get("/auth/my-account", [
+Route::post('/auth/token', [TokenController::class, 'store']);
+Route::middleware('auth:sanctum')->get('/auth/my-account', [
     TokenController::class,
-    "myAccount",
+    'myAccount',
 ]);
-Route::middleware("auth:sanctum")->get("/users", [
+Route::middleware('auth:sanctum')->get('/users', [
     UserController::class,
-    "index",
+    'index',
 ]);
-Route::middleware("auth:sanctum")->delete("/auth/token", [
+Route::middleware('auth:sanctum')->delete('/auth/token', [
     TokenController::class,
-    "destroy",
+    'destroy',
 ]);
 
-Route::middleware("auth:sanctum")->post("/files", [
+Route::middleware('auth:sanctum')->get('/tenants', [
+    TenantController::class,
+    'index',
+]);
+
+Route::middleware(['auth:sanctum', 'tenant'])->post('/files', [
     FileController::class,
-    "store",
+    'store',
 ]);
-Route::middleware("auth:sanctum")->get("/files", [
+Route::middleware(['auth:sanctum', 'tenant'])->get('/files', [
     FileController::class,
-    "index",
+    'index',
 ]);
 
-Route::middleware("auth:sanctum")
-    ->resource("/transactions", TransactionController::class)
-    ->only(["index", "store", "show", "update", "destroy"]);
+Route::middleware(['auth:sanctum', 'tenant'])
+    ->resource('/transactions', TransactionController::class)
+    ->only(['index', 'store', 'show', 'update', 'destroy']);
 
-Route::middleware("auth:sanctum")->get("/balances/{account}/{month}", [
+Route::middleware(['auth:sanctum', 'tenant'])->get('/balances/{account}/{month}', [
     BalanceController::class,
-    "show",
+    'show',
 ]);
 
-Route::middleware("auth:sanctum")
-    ->resource("/categories", CategoryController::class)
-    ->only(["index", "store", "show", "update", "destroy"]);
+Route::middleware(['auth:sanctum', 'tenant'])
+    ->resource('/categories', CategoryController::class)
+    ->only(['index', 'store', 'show', 'update', 'destroy']);
 
-Route::middleware("auth:sanctum")
-    ->resource("/accounts", AccountController::class)
-    ->only(["index", "store", "show", "update", "destroy"]);
+Route::middleware(['auth:sanctum', 'tenant'])
+    ->resource('/accounts', AccountController::class)
+    ->only(['index', 'store', 'show', 'update', 'destroy']);
 
-Route::middleware("auth:sanctum")
-    ->resource("/rules", RuleController::class)
-    ->only(["index", "store", "show", "update", "destroy"]);
+Route::middleware(['auth:sanctum', 'tenant'])
+    ->resource('/rules', RuleController::class)
+    ->only(['index', 'store', 'show', 'update', 'destroy']);
 
-Route::middleware("auth:sanctum")->get("/transactions/income/{month}/{year}", [
+Route::middleware(['auth:sanctum', 'tenant'])->get('/transactions/income/{month}/{year}', [
     TransactionsSummaryController::class,
-    "monthlyIncome",
+    'monthlyIncome',
 ]);
 
-Route::middleware("auth:sanctum")->get("/transactions/expense/{month}/{year}", [
+Route::middleware(['auth:sanctum', 'tenant'])->get('/transactions/expense/{month}/{year}', [
     TransactionsSummaryController::class,
-    "monthlyExpense",
+    'monthlyExpense',
 ]);
 
-Route::middleware("auth:sanctum")->get("/transactions/balance/{month}/{year}", [
+Route::middleware(['auth:sanctum', 'tenant'])->get('/transactions/balance/{month}/{year}', [
     TransactionsBalanceController::class,
-    "monthlyBalance",
+    'monthlyBalance',
 ]);

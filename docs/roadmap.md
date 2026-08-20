@@ -27,6 +27,8 @@ feature work.
 
 ## Phase 2: Minimal tenancy
 
+**Status: Complete — Spatie Laravel Multitenancy 4.2 / shared-database tenants.**
+
 1. Install and configure Spatie Laravel Multitenancy v4.
 2. Add tenants and user membership.
 3. Seed `personal` and `clinic` tenants.

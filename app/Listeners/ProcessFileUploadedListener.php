@@ -8,8 +8,9 @@ use App\Services\FileReader\FileReaderFactory;
 use App\Services\FileReader\UnsupportedFileTypeException;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Multitenancy\Jobs\TenantAware;
 
-class ProcessFileUploadedListener implements ShouldQueue
+class ProcessFileUploadedListener implements ShouldQueue, TenantAware
 {
     /**
      * @throws UnsupportedFileTypeException

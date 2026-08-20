@@ -2,25 +2,29 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Transaction extends BaseModel
 {
-    use HasFactory;
+    use BelongsToTenant, HasFactory;
+
     protected $fillable = [
-        "account_number",
-        "transaction_date",
-        "description",
-        "amount",
-        "category_id",
+        'account_number',
+        'transaction_date',
+        'description',
+        'amount',
+        'category_id',
     ];
-    public $timestamps = ["transaction_date"];
+
+    public $timestamps = ['transaction_date'];
+
     protected array $allowedFilters = [
-        "account_number",
-        "transaction_date",
-        "description",
-        "amount",
+        'account_number',
+        'transaction_date',
+        'description',
+        'amount',
     ];
 
     public function category(): BelongsTo
@@ -32,8 +36,8 @@ class Transaction extends BaseModel
     {
         return $this->belongsTo(
             Account::class,
-            "account_number",
-            "account_number"
+            'account_number',
+            'account_number'
         );
     }
 
@@ -41,32 +45,32 @@ class Transaction extends BaseModel
     {
         // special case for "uncategorized"
         if ((int) $categoryId === -1) {
-            $query->whereNull("category_id");
+            $query->whereNull('category_id');
         }
 
         $category = Category::query()->find($categoryId);
-        if (!$category) {
+        if (! $category) {
             return;
         }
 
         // belong to category or any of the category children or any category children's children
-        $childrenIds = $category->children->pluck("id")->push($categoryId);
+        $childrenIds = $category->children->pluck('id')->push($categoryId);
         $childrenIds = $childrenIds->merge(
             $category
                 ->children()
-                ->with("children")
+                ->with('children')
                 ->get()
-                ->pluck("children")
+                ->pluck('children')
                 ->flatten()
-                ->pluck("id")
+                ->pluck('id')
         );
         $childrenIds = $childrenIds->unique();
         $childrenIds = $childrenIds->values();
         $childrenIds = $childrenIds->toArray();
 
         $query->where(function ($query) use ($categoryId, $childrenIds) {
-            $query->orWhere("category_id", $categoryId);
-            $query->orWhereIn("category_id", $childrenIds);
+            $query->orWhere('category_id', $categoryId);
+            $query->orWhereIn('category_id', $childrenIds);
         });
     }
 }
