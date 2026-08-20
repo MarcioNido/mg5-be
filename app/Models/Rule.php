@@ -12,7 +12,7 @@ class Rule extends BaseModel
 {
     use BelongsToTenant, HasFactory, HasPageSizeConfiguration, SoftDeletes;
 
-    protected $fillable = ['content', 'account_number', 'category_id'];
+    protected $fillable = ['content', 'account_id', 'category_id'];
 
     public function category(): BelongsTo
     {
@@ -21,10 +21,6 @@ class Rule extends BaseModel
 
     public function account(): BelongsTo
     {
-        return $this->belongsTo(
-            Account::class,
-            'account_number',
-            'account_number'
-        );
+        return $this->belongsTo(Account::class);
     }
 }

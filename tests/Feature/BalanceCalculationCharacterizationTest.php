@@ -2,8 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Enums\TransactionOrigin;
+use App\Enums\TransactionStatus;
 use App\Models\Account;
-use App\Models\Balance;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -20,17 +21,14 @@ class BalanceCalculationCharacterizationTest extends TestCase
             'account_number' => 'CHEQUING-1',
             'name' => 'Chequing',
             'type' => 'debit',
-        ]);
-        Balance::query()->create([
-            'account_number' => 'CHEQUING-1',
-            'last_day_of_month' => '2024-01-31',
-            'final_balance' => 1000,
+            'opening_balance' => '1000.0000',
+            'opening_balance_date' => '2024-01-31',
         ]);
         $this->transaction($account, '2024-02-05', 'Deposit', 250.25);
         $this->transaction($account, '2024-02-10', 'Payment', -75.10);
         $this->transaction($account, '2024-03-01', 'Ignored', 999);
 
-        $this->getJson('/api/balances/CHEQUING-1/2024-02')
+        $this->getJson("/api/balances/{$account->id}/2024-02")
             ->assertOk()
             ->assertExactJson([
                 'data' => [
@@ -45,10 +43,13 @@ class BalanceCalculationCharacterizationTest extends TestCase
     private function transaction(Account $account, string $date, string $description, float $amount): void
     {
         Transaction::query()->create([
-            'account_number' => 'CHEQUING-1',
+            'account_id' => $account->id,
             'transaction_date' => $date,
             'description' => $description,
             'amount' => $amount,
+            'status' => TransactionStatus::Posted,
+            'origin' => TransactionOrigin::Csv,
+            'posted_at' => now(),
         ]);
     }
 }

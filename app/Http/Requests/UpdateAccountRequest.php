@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Tenant;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateAccountRequest extends FormRequest
 {
@@ -13,7 +15,7 @@ class UpdateAccountRequest extends FormRequest
      */
     public function authorize()
     {
-        return false;
+        return true;
     }
 
     /**
@@ -23,8 +25,18 @@ class UpdateAccountRequest extends FormRequest
      */
     public function rules()
     {
+        $account = $this->route('account');
+
         return [
-            //
+            'account_number' => [
+                'nullable', 'string', 'max:255',
+                Rule::unique('accounts')->where(fn ($query) => $query->where('tenant_id', Tenant::current()?->id))->ignore($account),
+            ],
+            'name' => ['sometimes', 'string', 'max:255'],
+            'type' => ['sometimes', 'string', Rule::in(['chequing', 'savings', 'credit', 'investment', 'cash', 'other', 'debit'])],
+            'currency' => ['sometimes', 'string', 'size:3'],
+            'opening_balance' => ['sometimes', 'decimal:0,4'],
+            'opening_balance_date' => ['nullable', 'date'],
         ];
     }
 }

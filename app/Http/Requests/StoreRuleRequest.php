@@ -27,10 +27,10 @@ class StoreRuleRequest extends FormRequest
     {
         return [
             'content' => 'required|string',
-            'account.account_number' => [
+            'account.id' => [
                 'nullable',
                 'string',
-                Rule::exists('accounts', 'account_number')->where(
+                Rule::exists('accounts', 'id')->where(
                     fn ($query) => $query->where('tenant_id', Tenant::current()?->getKey())
                 ),
             ],

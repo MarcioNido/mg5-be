@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Events\FileUploadedEvent;
 use App\Http\Requests\StoreFileRequest;
 use App\Http\Resources\FileResource;
+use App\Models\Account;
 use App\Models\File;
+use App\Services\CsvImportService;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Storage;
 
@@ -16,16 +18,30 @@ class FileController extends Controller
         return FileResource::collection(File::latest()->limit(10)->get());
     }
 
-    public function store(StoreFileRequest $request): bool|string
+    public function show(File $file): FileResource
     {
-        $path = $request->file('file')->store('files');
+        return new FileResource($file->load(['account', 'rows.suggestions.pendingTransaction']));
+    }
 
-        $file = File::create([
-            'filename' => $path,
-        ]);
+    public function store(StoreFileRequest $request, CsvImportService $imports): FileResource
+    {
+        $uploaded = $request->file('file');
+        $path = $uploaded->store('files');
+        $file = $imports->create(
+            Account::query()->findOrFail($request->integer('account_id')),
+            $path,
+            $uploaded->getClientOriginalName(),
+            Storage::path($path)
+        );
 
-        FileUploadedEvent::dispatch($file);
+        if (! $file->wasRecentlyCreated && $file->filename !== $path) {
+            Storage::delete($path);
+        }
 
-        return $file;
+        if ($file->wasRecentlyCreated) {
+            FileUploadedEvent::dispatch($file);
+        }
+
+        return new FileResource($file->load('rows.suggestions'));
     }
 }

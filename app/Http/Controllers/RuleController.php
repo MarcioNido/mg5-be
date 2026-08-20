@@ -16,9 +16,9 @@ class RuleController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         return RuleResource::collection(
-            Rule::filters($request->get("filter"))
-                ->orders($request->get("order"))
-                ->with(["account", "category"])
+            Rule::filters($request->get('filter'))
+                ->orders($request->get('order'))
+                ->with(['account', 'category'])
                 ->paginate()
         );
     }
@@ -27,11 +27,11 @@ class RuleController extends Controller
     {
         $validated = $request->validated();
 
-        $validated["account_number"] = $validated["account"]["account_number"];
-        unset($validated["account"]);
+        $validated['account_id'] = $validated['account']['id'] ?? null;
+        unset($validated['account']);
 
-        $validated["category_id"] = $validated["category"]["id"];
-        unset($validated["category"]);
+        $validated['category_id'] = $validated['category']['id'];
+        unset($validated['category']);
 
         $rule = Rule::create($validated);
 
@@ -42,7 +42,8 @@ class RuleController extends Controller
 
     public function show(Rule $rule): RuleResource
     {
-        $rule->load(["account", "category"]);
+        $rule->load(['account', 'category']);
+
         return new RuleResource($rule);
     }
 
@@ -50,11 +51,11 @@ class RuleController extends Controller
     {
         $validated = $request->validated();
 
-        $validated["account_number"] = $validated["account"]["account_number"];
-        unset($validated["account"]);
+        $validated['account_id'] = $validated['account']['id'] ?? null;
+        unset($validated['account']);
 
-        $validated["category_id"] = $validated["category"]["id"];
-        unset($validated["category"]);
+        $validated['category_id'] = $validated['category']['id'];
+        unset($validated['category']);
 
         $rule->update($validated);
 
@@ -66,6 +67,7 @@ class RuleController extends Controller
     public function destroy(Rule $rule): Response
     {
         $rule->delete();
+
         return response()->noContent();
     }
 }

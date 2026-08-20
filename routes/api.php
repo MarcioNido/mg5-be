@@ -4,6 +4,8 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\BalanceController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\MatchSuggestionController;
+use App\Http\Controllers\ReconciliationController;
 use App\Http\Controllers\RuleController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TokenController;
@@ -56,6 +58,19 @@ Route::middleware(['auth:sanctum', 'tenant'])->get('/files', [
     FileController::class,
     'index',
 ]);
+Route::middleware(['auth:sanctum', 'tenant'])->get('/files/{file}', [
+    FileController::class,
+    'show',
+]);
+
+Route::middleware(['auth:sanctum', 'tenant'])->group(function (): void {
+    Route::get('/match-suggestions', [MatchSuggestionController::class, 'index']);
+    Route::post('/match-suggestions/{suggestion}/confirm', [MatchSuggestionController::class, 'confirm']);
+    Route::post('/match-suggestions/{suggestion}/reject', [MatchSuggestionController::class, 'reject']);
+    Route::get('/accounts/{account}/reconciliations', [ReconciliationController::class, 'index']);
+    Route::post('/accounts/{account}/reconciliations', [ReconciliationController::class, 'store']);
+    Route::get('/accounts/{account}/reconciliations/latest', [ReconciliationController::class, 'latest']);
+});
 
 Route::middleware(['auth:sanctum', 'tenant'])
     ->resource('/transactions', TransactionController::class)

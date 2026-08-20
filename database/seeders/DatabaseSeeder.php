@@ -26,8 +26,11 @@ class DatabaseSeeder extends Seeder
 
         $admin->tenants()->sync(Tenant::query()->pluck('id'));
 
-        Tenant::query()->where('slug', 'personal')->firstOrFail()->makeCurrent();
+        Tenant::query()->each(function (Tenant $tenant): void {
+            $tenant->makeCurrent();
+            $this->call(CategorySeeder::class);
+        });
 
-        $this->call([AccountSeeder::class, CategorySeeder::class]);
+        Tenant::forgetCurrent();
     }
 }

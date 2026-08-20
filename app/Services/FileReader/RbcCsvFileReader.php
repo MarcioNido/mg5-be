@@ -2,8 +2,9 @@
 
 namespace App\Services\FileReader;
 
-use App\Models\Transaction;
+use Generator;
 use Illuminate\Support\Carbon;
+use Throwable;
 
 /**
  * Reads RBC CSV exported files
@@ -19,14 +20,20 @@ use Illuminate\Support\Carbon;
  *   [7] => USD$
  * )
  */
-class RbcCsvFileReader
+class RbcCsvFileReader implements CsvFileReader
 {
     protected $handler;
 
     const ACCOUNT_NUMBER = 1;
+
     const TRANSACTION_DATE = 2;
+
+    const CHEQUE_NUMBER = 3;
+
     const DESCRIPTION_1 = 4;
+
     const DESCRIPTION_2 = 5;
+
     const AMOUNT = 6;
 
     /**
@@ -35,22 +42,38 @@ class RbcCsvFileReader
     public function __construct(protected string $filePath)
     {
         $this->handler = fopen($this->filePath, 'r');
-        if (!$this->handler) {
-            throw new UnsupportedFileTypeException();
+        if (! $this->handler) {
+            throw new UnsupportedFileTypeException;
         }
     }
 
-    public function processFile(): void
+    public function sourceName(): string
     {
-        $this->line(); // skip header
+        return 'RBC';
+    }
 
+    public function rows(): Generator
+    {
+        $this->rewind();
+        $this->line();
+        $lineNumber = 1;
         while ($line = $this->line()) {
-            Transaction::query()->firstOrCreate([
-                'account_number' => $line[self::ACCOUNT_NUMBER],
-                'transaction_date' => Carbon::createFromFormat('m/d/Y', $line[self::TRANSACTION_DATE])->toDateString(),
-                'description' => trim($line[self::DESCRIPTION_1] . ' ' . $line[self::DESCRIPTION_2]),
-                'amount' => $line[self::AMOUNT],
-            ]);
+            $lineNumber++;
+            try {
+                yield [
+                    'line_number' => $lineNumber,
+                    'raw' => $line,
+                    'normalized' => [
+                        'account_number' => $line[self::ACCOUNT_NUMBER],
+                        'bank_reference' => trim($line[self::CHEQUE_NUMBER]) ?: null,
+                        'transaction_date' => Carbon::createFromFormat('m/d/Y', $line[self::TRANSACTION_DATE])->toDateString(),
+                        'description' => trim($line[self::DESCRIPTION_1].' '.$line[self::DESCRIPTION_2]),
+                        'amount' => $line[self::AMOUNT],
+                    ],
+                ];
+            } catch (Throwable $exception) {
+                yield ['line_number' => $lineNumber, 'raw' => $line, 'normalized' => null, 'error' => $exception->getMessage()];
+            }
         }
     }
 

@@ -39,8 +39,28 @@ class Tenant extends \Spatie\Multitenancy\Models\Tenant
         return $this->hasMany(File::class);
     }
 
-    public function balances(): HasMany
+    public function reconciliations(): HasMany
     {
-        return $this->hasMany(Balance::class);
+        return $this->hasMany(Reconciliation::class);
+    }
+
+    public function importRows(): HasMany
+    {
+        return $this->hasMany(ImportRow::class);
+    }
+
+    public function importedMovements(): HasMany
+    {
+        return $this->hasMany(ImportedMovement::class);
+    }
+
+    public function transactionSplits(): HasMany
+    {
+        return $this->hasMany(TransactionSplit::class);
+    }
+
+    public function matchSuggestions(): HasMany
+    {
+        return $this->hasMany(MatchSuggestion::class);
     }
 }

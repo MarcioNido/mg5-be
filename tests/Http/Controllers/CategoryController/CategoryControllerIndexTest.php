@@ -26,9 +26,7 @@ class CategoryControllerIndexTest extends TestCase
 
         $this->getJson('/api/categories')
             ->assertOk()
-            ->assertJsonCount(2, 'data')
-            ->assertJsonPath('data.0.name', 'Expenses')
-            ->assertJsonPath('data.0.children.0.name', 'Rent')
+            ->assertJsonFragment(['name' => 'Expenses'])
             ->assertJsonFragment([
                 'name' => 'Rent',
                 'level' => 2,

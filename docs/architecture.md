@@ -59,6 +59,18 @@ fail closed when no current tenant exists.
 See [Phase 2 minimal tenancy](phase-2-minimal-tenancy.md) for migration,
 backup, compatibility, and verification details.
 
+Phase 3 intentionally replaces the disposable legacy financial schema with a
+clean schema. Every financial relation uses an internal ID and composite
+`tenant_id` foreign keys where the database can enforce tenant consistency.
+`account_number` is nullable import metadata and is unique only within a tenant.
+See [Phase 3 transactions and reconciliation](phase-3-transactions-reconciliation.md).
+
+CSV deduplication uses a persistent `imported_movements` identity rather than a
+unique transaction-shaped row. The identity includes available bank references
+and an occurrence number, allowing legitimate identical statement rows while a
+database constraint and row lock keep reimports and concurrent batches
+idempotent.
+
 ## Transaction model
 
 Transactions have two bank states:
@@ -116,6 +128,18 @@ A reconciliation is valid whenever its bank balance equals its currently
 calculated balance. No separate audit workflow or invalidation metadata is
 required.
 
+The calculation is made independently from the account opening checkpoint:
+
+```text
+account opening balance
++ posted transactions after opening_balance_date and through statement_date
+= calculated balance
+```
+
+This is equivalent to advancing from prior confirmed checkpoints while making
+retroactive recalculation deterministic even when an earlier checkpoint becomes
+invalid.
+
 The minimal reconciliation record contains:
 
 - Account.
@@ -132,6 +156,9 @@ balance still matches.
 Changes to category, description, notes, attachments, or category splits do not
 affect reconciliation when the transaction total, date, account, and posted
 state remain unchanged.
+
+Updating an account's opening balance or opening date recalculates all of its
+reconciliations through the same domain service used for transaction mutations.
 
 ## Management adjustments
 

@@ -104,14 +104,14 @@ class MinimalTenancyIsolationTest extends TestCase
         $this->actingAs($user)
             ->withHeader('X-Tenant-Slug', 'clinic')
             ->postJson('/api/transactions', [
-                'account' => ['account_number' => $account->account_number],
-                'category' => ['id' => $category->id],
+                'account_id' => $account->id,
+                'category_id' => $category->id,
                 'transaction_date' => '2026-08-20',
                 'description' => 'Cross tenant attempt',
                 'amount' => -10,
             ])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['account.account_number', 'category.id']);
+            ->assertJsonValidationErrors(['account_id', 'category_id']);
     }
 
     public function test_financial_models_fail_closed_without_a_current_tenant(): void
@@ -125,7 +125,7 @@ class MinimalTenancyIsolationTest extends TestCase
 
         $this->expectException(LogicException::class);
         Transaction::query()->create([
-            'account_number' => 'PERSONAL-ACCOUNT',
+            'account_id' => 999999,
             'transaction_date' => '2026-08-20',
             'description' => 'No tenant',
             'amount' => -10,
@@ -143,14 +143,14 @@ class MinimalTenancyIsolationTest extends TestCase
         string $description
     ): Transaction {
         return $tenant->execute(function () use ($accountNumber, $description): Transaction {
-            Account::factory()->create([
+            $account = Account::factory()->create([
                 'account_number' => $accountNumber,
                 'name' => $accountNumber,
                 'type' => 'debit',
             ]);
 
             return Transaction::query()->create([
-                'account_number' => $accountNumber,
+                'account_id' => $account->id,
                 'transaction_date' => '2026-08-20',
                 'description' => $description,
                 'amount' => -10,

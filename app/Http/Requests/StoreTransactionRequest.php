@@ -26,25 +26,29 @@ class StoreTransactionRequest extends FormRequest
     public function rules()
     {
         return [
-            'account.account_number' => [
+            'account_id' => [
                 'required',
-                'string',
-                'max:255',
-                Rule::exists('accounts', 'account_number')->where(
+                'integer',
+                Rule::exists('accounts', 'id')->where(
                     fn ($query) => $query->where('tenant_id', Tenant::current()?->getKey())
                 ),
             ],
             'transaction_date' => ['required', 'date'],
-            'amount' => ['required', 'numeric'],
+            'amount' => ['required', 'decimal:0,4'],
             'description' => ['required', 'string', 'max:255'],
-            'category.id' => [
-                'required',
+            'category_id' => [
+                'nullable',
                 'integer',
                 Rule::exists('categories', 'id')->where(
                     fn ($query) => $query->where('tenant_id', Tenant::current()?->getKey())
                 ),
             ],
-            'rule_content' => ['nullable', 'string', 'max:255'],
+            'notes' => ['nullable', 'string'],
+            'status' => ['sometimes', Rule::in(['pending', 'posted'])],
+            'splits' => ['sometimes', 'array'],
+            'splits.*.category_id' => ['required', 'integer'],
+            'splits.*.amount' => ['required', 'decimal:0,4'],
+            'splits.*.description' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

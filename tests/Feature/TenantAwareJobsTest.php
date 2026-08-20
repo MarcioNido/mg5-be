@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Jobs\ProcessAllRules;
 use App\Jobs\ProcessRule;
 use App\Listeners\ProcessFileUploadedListener;
-use App\Listeners\RecalculateBalancesListener;
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\Rule;
@@ -51,7 +50,6 @@ class TenantAwareJobsTest extends TestCase
             ProcessAllRules::class,
             ProcessRule::class,
             ProcessFileUploadedListener::class,
-            RecalculateBalancesListener::class,
         ] as $class) {
             $this->assertContains(TenantAware::class, class_implements($class));
         }
@@ -64,7 +62,7 @@ class TenantAwareJobsTest extends TestCase
 
     private function ruleAndTransaction(string $accountNumber): array
     {
-        Account::factory()->create([
+        $account = Account::factory()->create([
             'account_number' => $accountNumber,
             'name' => $accountNumber,
             'type' => 'debit',
@@ -72,11 +70,11 @@ class TenantAwareJobsTest extends TestCase
         $category = Category::factory()->create();
         $rule = Rule::query()->create([
             'content' => '%TENANT MATCH%',
-            'account_number' => $accountNumber,
+            'account_id' => $account->id,
             'category_id' => $category->id,
         ]);
         $transaction = Transaction::query()->create([
-            'account_number' => $accountNumber,
+            'account_id' => $account->id,
             'transaction_date' => '2026-08-20',
             'description' => 'TENANT MATCH',
             'amount' => -10,

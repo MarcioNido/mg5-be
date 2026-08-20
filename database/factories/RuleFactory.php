@@ -2,10 +2,12 @@
 
 namespace Database\Factories;
 
+use App\Models\Category;
+use App\Models\Rule;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Rule>
+ * @extends Factory<Rule>
  */
 class RuleFactory extends Factory
 {
@@ -17,7 +19,9 @@ class RuleFactory extends Factory
     public function definition()
     {
         return [
-            //
+            'content' => '%'.fake()->word().'%',
+            'account_id' => null,
+            'category_id' => Category::factory(),
         ];
     }
 }

@@ -42,6 +42,9 @@ This phase should use its own task and branch.
 
 ## Phase 3: Transactions, imports, and reconciliation
 
+**Status: Complete — clean account-ID schema, idempotent CSV imports, matching,
+splits, and reconciliation.**
+
 1. Replace account-number primary keys with internal account IDs while
    preserving bank identifiers safely.
 2. Introduce pending and posted transaction states and transaction origin.

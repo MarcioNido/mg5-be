@@ -32,7 +32,7 @@ class ProcessRule implements ShouldQueue, TenantAware
                 $query->whereNull('category_id');
             })
             ->where('description', 'like', "{$this->rule->content}")
-            ->where('account_number', $this->rule->account_number)
+            ->when($this->rule->account_id, fn ($query) => $query->where('account_id', $this->rule->account_id))
             ->update(['category_id' => $this->rule->category_id]);
     }
 }

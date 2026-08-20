@@ -2,10 +2,14 @@
 
 namespace Database\Factories;
 
+use App\Enums\TransactionOrigin;
+use App\Enums\TransactionStatus;
+use App\Models\Account;
+use App\Models\Transaction;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Transaction>
+ * @extends Factory<Transaction>
  */
 class TransactionFactory extends Factory
 {
@@ -17,7 +21,12 @@ class TransactionFactory extends Factory
     public function definition()
     {
         return [
-
+            'account_id' => Account::factory(),
+            'transaction_date' => fake()->date(),
+            'description' => fake()->sentence(3),
+            'amount' => fake()->randomElement(['-25.0000', '100.0000']),
+            'status' => TransactionStatus::Pending,
+            'origin' => TransactionOrigin::Manual,
         ];
     }
 }

@@ -34,4 +34,9 @@ class Category extends BaseModel
     {
         return $this->hasMany(Transaction::class);
     }
+
+    public function splits(): HasMany
+    {
+        return $this->hasMany(TransactionSplit::class);
+    }
 }

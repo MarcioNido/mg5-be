@@ -2,30 +2,78 @@
 
 namespace App\Models;
 
+use App\Enums\TransactionOrigin;
+use App\Enums\TransactionStatus;
 use App\Models\Concerns\BelongsToTenant;
+use App\Services\ReconciliationService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Validation\ValidationException;
 
 class Transaction extends BaseModel
 {
-    use BelongsToTenant, HasFactory;
+    use BelongsToTenant, HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'account_number',
+        'account_id',
         'transaction_date',
         'description',
+        'notes',
         'amount',
+        'category_id',
+        'status',
+        'origin',
+        'posted_at',
+    ];
+
+    protected array $allowedFilters = [
+        'account_id',
+        'transaction_date',
+        'status',
+        'origin',
         'category_id',
     ];
 
-    public $timestamps = ['transaction_date'];
+    protected function casts(): array
+    {
+        return [
+            'amount' => 'decimal:4',
+            'posted_at' => 'datetime',
+            'status' => TransactionStatus::class,
+            'origin' => TransactionOrigin::class,
+        ];
+    }
 
-    protected array $allowedFilters = [
-        'account_number',
-        'transaction_date',
-        'description',
-        'amount',
-    ];
+    protected static function booted(): void
+    {
+        static::updating(function (Transaction $transaction): void {
+            if ($transaction->isDirty(['account_id', 'transaction_date', 'amount', 'status'])
+                && $transaction->isLinkedToImport()) {
+                throw ValidationException::withMessages([
+                    'transaction' => 'Bank fields of a transaction linked to an import are read-only.',
+                ]);
+            }
+        });
+
+        static::deleting(function (Transaction $transaction): void {
+            if ($transaction->isLinkedToImport()) {
+                throw ValidationException::withMessages([
+                    'transaction' => 'A transaction linked to an import cannot be deleted directly.',
+                ]);
+            }
+        });
+
+        static::saved(function (Transaction $transaction): void {
+            if ($transaction->wasRecentlyCreated || $transaction->wasChanged(['account_id', 'transaction_date', 'amount', 'status'])) {
+                app(ReconciliationService::class)->recalculateForMutation($transaction, $transaction->getOriginal());
+            }
+        });
+
+        static::deleted(fn (Transaction $transaction) => app(ReconciliationService::class)
+            ->recalculateForMutation($transaction, $transaction->getOriginal()));
+    }
 
     public function category(): BelongsTo
     {
@@ -34,11 +82,27 @@ class Transaction extends BaseModel
 
     public function account(): BelongsTo
     {
-        return $this->belongsTo(
-            Account::class,
-            'account_number',
-            'account_number'
-        );
+        return $this->belongsTo(Account::class);
+    }
+
+    public function splits(): HasMany
+    {
+        return $this->hasMany(TransactionSplit::class);
+    }
+
+    public function importRows(): HasMany
+    {
+        return $this->hasMany(ImportRow::class);
+    }
+
+    public function importedMovements(): HasMany
+    {
+        return $this->hasMany(ImportedMovement::class);
+    }
+
+    public function isLinkedToImport(): bool
+    {
+        return $this->importRows()->exists() || $this->importedMovements()->exists();
     }
 
     public function scopeBelongsToCategoryGroup($query, $categoryId): void

@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TransactionStatus;
 use App\Models\Account;
-use App\Models\Balance;
 use App\Models\Transaction;
+use App\Services\Money;
+use App\Services\ReconciliationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 
@@ -25,12 +27,10 @@ class BalanceController extends Controller
 
         return new JsonResponse([
             'data' => [
-                'initialBalance' => $this->currency($initialBalance),
-                'totalCredits' => $this->currency($totalCredits),
-                'totalDebits' => $this->currency($totalDebits),
-                'finalBalance' => $this->currency(
-                    $initialBalance + $totalCredits + $totalDebits
-                ),
+                'initialBalance' => Money::formatUnits($initialBalance),
+                'totalCredits' => Money::formatUnits($totalCredits),
+                'totalDebits' => Money::formatUnits($totalDebits),
+                'finalBalance' => Money::formatUnits($initialBalance + $totalCredits + $totalDebits),
             ],
         ]);
     }
@@ -39,12 +39,10 @@ class BalanceController extends Controller
     {
         $monthDate = Carbon::create($month);
 
-        $initialBalance =
-            Balance::query()
-                ->where('account_number', $account->account_number)
-                ->where('last_day_of_month', '<', $monthDate->lastOfMonth())
-                ->orderBy('last_day_of_month', 'desc')
-                ->value('final_balance') ?? 0;
+        $initialBalance = Money::units(app(ReconciliationService::class)->calculate(
+            $account,
+            $monthDate->copy()->startOfMonth()->subDay()
+        ));
 
         $monthTransactions = Transaction::query()
             ->selectRaw(
@@ -53,7 +51,8 @@ class BalanceController extends Controller
             ->selectRaw(
                 'SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END) as debits'
             )
-            ->where('account_number', $account->account_number)
+            ->where('account_id', $account->id)
+            ->where('status', TransactionStatus::Posted->value)
             ->where(
                 'transaction_date',
                 '>=',
@@ -66,14 +65,9 @@ class BalanceController extends Controller
             )
             ->first();
 
-        $totalCredits = $monthTransactions->credits;
-        $totalDebits = $monthTransactions->debits;
+        $totalCredits = Money::units($monthTransactions->credits ?? '0');
+        $totalDebits = Money::units($monthTransactions->debits ?? '0');
 
         return [$initialBalance, $totalCredits, $totalDebits];
-    }
-
-    public function currency(mixed $initialBalance): string
-    {
-        return number_format((float) $initialBalance, 2, '.', '');
     }
 }

@@ -9,10 +9,10 @@ class FileReaderFactory
     /**
      * @throws UnsupportedFileTypeException
      */
-    public static function make(string $filePath)
+    public static function make(string $filePath): CsvFileReader
     {
-        if (!self::isValidCsvContent($filePath)) {
-            throw new UnsupportedFileTypeException();
+        if (! self::isValidCsvContent($filePath)) {
+            throw new UnsupportedFileTypeException;
         }
 
         if (self::isRbcFileFormat($filePath)) {
@@ -23,7 +23,7 @@ class FileReaderFactory
             return new TriangleCsvFileReader($filePath);
         }
 
-        throw new UnsupportedFileTypeException();
+        throw new UnsupportedFileTypeException;
     }
 
     private static function isValidCsvContent(string $fileContent): bool
@@ -48,5 +48,4 @@ class FileReaderFactory
 
         return $header === ['MY ACCOUNT TRANSACTIONS'];
     }
-
 }

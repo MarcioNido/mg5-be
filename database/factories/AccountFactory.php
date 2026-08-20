@@ -17,8 +17,12 @@ class AccountFactory extends Factory
     public function definition()
     {
         return [
+            'account_number' => null,
             'name' => fake()->sentence(3),
-            'type' => fake()->randomElement(['credit', 'debit', 'investment']),
+            'type' => fake()->randomElement(['credit', 'chequing', 'savings', 'investment']),
+            'currency' => 'CAD',
+            'opening_balance' => '0.0000',
+            'opening_balance_date' => null,
         ];
     }
 

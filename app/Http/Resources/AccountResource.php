@@ -9,11 +9,15 @@ class AccountResource extends JsonResource
     public function toArray($request): array
     {
         return [
-            "account_number" => $this->account_number,
-            "name" => $this->name,
-            "type" => $this->type,
-            "transactions" => TransactionResource::collection(
-                $this->whenLoaded("transactions")
+            'id' => $this->id,
+            'account_number' => $this->account_number,
+            'name' => $this->name,
+            'type' => $this->type,
+            'currency' => $this->currency,
+            'opening_balance' => $this->opening_balance,
+            'opening_balance_date' => $this->opening_balance_date,
+            'transactions' => TransactionResource::collection(
+                $this->whenLoaded('transactions')
             ),
         ];
     }

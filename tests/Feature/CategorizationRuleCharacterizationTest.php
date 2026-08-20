@@ -25,7 +25,7 @@ class CategorizationRuleCharacterizationTest extends TestCase
         $existingCategory = Category::factory()->create(['name' => 'Existing']);
         $rule = Rule::query()->create([
             'content' => '%MARKET%',
-            'account_number' => 'CHEQUING-1',
+            'account_id' => $account->id,
             'category_id' => $matchingCategory->id,
         ]);
 
@@ -43,7 +43,7 @@ class CategorizationRuleCharacterizationTest extends TestCase
     private function transaction(Account $account, string $description, ?Category $category = null): Transaction
     {
         return Transaction::query()->create([
-            'account_number' => 'CHEQUING-1',
+            'account_id' => $account->id,
             'transaction_date' => '2024-02-15',
             'description' => $description,
             'amount' => -10,
