@@ -9,17 +9,18 @@
 
 ## Backend modernization
 
-The current backend is Laravel 9. Before adding tenancy, it should be upgraded
-incrementally through supported Laravel major versions. Characterization tests
-must protect the existing CSV import, categorization, transaction, and balance
-behaviour during the upgrade.
+The backend runs on Laravel 13 and PHP 8.4. The framework was upgraded one major
+version at a time from Laravel 9, with characterization tests protecting the
+existing authentication, CSV import, categorization, transaction, and balance
+behaviour throughout the upgrade.
 
-The target environment is:
+The current environment is:
 
-- A currently supported Laravel version.
+- Laravel 13.
 - PHP 8.4 for local and container environments.
-- Spatie Laravel Multitenancy v4.
 - MySQL with one shared database.
+
+Spatie Laravel Multitenancy v4 remains planned for the tenancy phase.
 
 ## Tenancy
 

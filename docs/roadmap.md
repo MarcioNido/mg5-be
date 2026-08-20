@@ -9,6 +9,8 @@ in the same task.
 
 ## Phase 1: Backend safety and framework upgrade
 
+**Status: Complete — Laravel 13 / PHP 8.4.**
+
 1. Add characterization tests for authentication, RBC and Triangle CSV imports,
    duplicate prevention, categorization rules, transaction CRUD, and balance
    calculations.
