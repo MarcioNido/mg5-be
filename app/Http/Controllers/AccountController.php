@@ -22,7 +22,9 @@ class AccountController extends Controller
 
     public function store(StoreAccountRequest $request): AccountResource
     {
-        return new AccountResource(Account::query()->create($request->validated()));
+        $account = Account::query()->create($request->validated());
+
+        return new AccountResource($account->refresh());
     }
 
     public function show(Account $account): AccountResource

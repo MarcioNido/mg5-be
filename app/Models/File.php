@@ -18,7 +18,7 @@ class File extends BaseModel
     protected $table = 'imports';
 
     protected $fillable = [
-        'account_id', 'filename', 'source_name', 'source_type', 'status',
+        'account_id', 'filename', 'original_filename', 'source_name', 'source_type', 'status',
         'file_fingerprint', 'total_rows', 'processed_rows', 'failed_rows',
         'error_message',
     ];

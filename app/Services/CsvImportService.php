@@ -25,6 +25,7 @@ class CsvImportService
             ['account_id' => $account->id, 'file_fingerprint' => $fingerprint],
             [
                 'filename' => $storedPath,
+                'original_filename' => mb_substr($originalName, 0, 255),
                 'source_name' => $reader->sourceName(),
                 'source_type' => 'csv',
                 'status' => ImportStatus::Pending,
@@ -35,11 +36,11 @@ class CsvImportService
     public function process(File $import, string $absolutePath): void
     {
         $import->update(['status' => ImportStatus::Processing, 'error_message' => null]);
-        $reader = FileReaderFactory::make($absolutePath);
         $total = $processed = $failed = 0;
         $occurrences = [];
 
         try {
+            $reader = FileReaderFactory::make($absolutePath);
             foreach ($reader->rows() as $data) {
                 $total++;
                 try {
@@ -67,7 +68,13 @@ class CsvImportService
                 }
             }
         } catch (Throwable $exception) {
-            $import->update(['status' => ImportStatus::Failed, 'error_message' => $exception->getMessage()]);
+            $import->update([
+                'status' => ImportStatus::Failed,
+                'total_rows' => $total,
+                'processed_rows' => $processed,
+                'failed_rows' => $failed,
+                'error_message' => $exception->getMessage(),
+            ]);
             throw $exception;
         }
 

@@ -15,10 +15,7 @@ class AccountResource extends JsonResource
             'type' => $this->type,
             'currency' => $this->currency,
             'opening_balance' => $this->opening_balance,
-            'opening_balance_date' => $this->opening_balance_date,
-            'transactions' => TransactionResource::collection(
-                $this->whenLoaded('transactions')
-            ),
+            'opening_balance_date' => $this->opening_balance_date?->toDateString(),
         ];
     }
 }

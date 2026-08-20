@@ -2,8 +2,6 @@
 
 namespace App\Services\FileReader;
 
-use Illuminate\Support\Str;
-
 class FileReaderFactory
 {
     /**
@@ -26,14 +24,17 @@ class FileReaderFactory
         throw new UnsupportedFileTypeException;
     }
 
-    private static function isValidCsvContent(string $fileContent): bool
+    private static function isValidCsvContent(string $filePath): bool
     {
-        return Str::endsWith($fileContent, '.csv') || Str::endsWith($fileContent, '.txt');
+        return is_file($filePath) && is_readable($filePath) && filesize($filePath) > 0;
     }
 
     private static function isRbcFileFormat(string $filePath): bool
     {
-        $handler = fopen($filePath, 'r');
+        $handler = @fopen($filePath, 'r');
+        if ($handler === false) {
+            return false;
+        }
         $header = fgetcsv($handler);
         fclose($handler);
 
@@ -42,7 +43,10 @@ class FileReaderFactory
 
     private static function isTriangleFileFormat(string $filePath): bool
     {
-        $handler = fopen($filePath, 'r');
+        $handler = @fopen($filePath, 'r');
+        if ($handler === false) {
+            return false;
+        }
         $header = fgetcsv($handler);
         fclose($handler);
 

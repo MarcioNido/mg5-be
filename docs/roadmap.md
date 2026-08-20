@@ -72,6 +72,9 @@ Frontend work belongs in a separate task rooted in the `mg5-fe` repository.
 
 ## Phase 5: Core frontend workflows
 
+**API preparation status: Phase 5A.1 complete — accounts and CSV import HTTP
+contracts are ready. Frontend Phase 5A.2 remains pending.**
+
 Implement in this order:
 
 1. CSV import status and history.

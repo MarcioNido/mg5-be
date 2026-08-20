@@ -22,6 +22,7 @@ class FileFactory extends Factory
         return [
             'account_id' => Account::factory(),
             'filename' => 'files/'.fake()->uuid().'.csv',
+            'original_filename' => fake()->word().'.csv',
             'source_name' => 'RBC',
             'source_type' => 'csv',
             'status' => ImportStatus::Pending,
