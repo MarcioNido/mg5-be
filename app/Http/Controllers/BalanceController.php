@@ -24,11 +24,11 @@ class BalanceController extends Controller
         );
 
         return new JsonResponse([
-            "data" => [
-                "initialBalance" => $this->currency($initialBalance),
-                "totalCredits" => $this->currency($totalCredits),
-                "totalDebits" => $this->currency($totalDebits),
-                "finalBalance" => $this->currency(
+            'data' => [
+                'initialBalance' => $this->currency($initialBalance),
+                'totalCredits' => $this->currency($totalCredits),
+                'totalDebits' => $this->currency($totalDebits),
+                'finalBalance' => $this->currency(
                     $initialBalance + $totalCredits + $totalDebits
                 ),
             ],
@@ -41,23 +41,27 @@ class BalanceController extends Controller
 
         $initialBalance =
             Balance::query()
-                ->where("account_number", $account->account_number)
-                ->where("last_day_of_month", "<", $monthDate->lastOfMonth())
-                ->orderBy("last_day_of_month", "desc")
-                ->value("final_balance") ?? 0;
+                ->where('account_number', $account->account_number)
+                ->where('last_day_of_month', '<', $monthDate->lastOfMonth())
+                ->orderBy('last_day_of_month', 'desc')
+                ->value('final_balance') ?? 0;
 
         $monthTransactions = Transaction::query()
-            ->selectRaw("SUM(IF(amount >= 0, amount, 0)) as credits")
-            ->selectRaw("SUM(IF(amount < 0, amount, 0)) as debits")
-            ->where("account_number", $account->account_number)
+            ->selectRaw(
+                'SUM(CASE WHEN amount >= 0 THEN amount ELSE 0 END) as credits'
+            )
+            ->selectRaw(
+                'SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END) as debits'
+            )
+            ->where('account_number', $account->account_number)
             ->where(
-                "transaction_date",
-                ">=",
+                'transaction_date',
+                '>=',
                 $monthDate->startOfMonth()->toDateString()
             )
             ->where(
-                "transaction_date",
-                "<=",
+                'transaction_date',
+                '<=',
                 $monthDate->endOfMonth()->toDateString()
             )
             ->first();
@@ -70,6 +74,6 @@ class BalanceController extends Controller
 
     public function currency(mixed $initialBalance): string
     {
-        return number_format((float) $initialBalance, 2, ".", "");
+        return number_format((float) $initialBalance, 2, '.', '');
     }
 }

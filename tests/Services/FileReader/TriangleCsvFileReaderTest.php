@@ -5,17 +5,17 @@ namespace Tests\Services\FileReader;
 use App\Models\Transaction;
 use App\Services\FileReader\TriangleCsvFileReader;
 use App\Services\FileReader\UnsupportedFileTypeException;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class TriangleCsvFileReaderTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     /**
      * @throws UnsupportedFileTypeException
      */
-    public function testProcessFile()
+    public function test_process_file(): void
     {
         $reader = new TriangleCsvFileReader(base_path('tests/fixtures/Transactions.csv'));
         $reader->processFile();

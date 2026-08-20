@@ -2,18 +2,37 @@
 
 namespace Tests\Http\Controllers\CategoryController;
 
-use Tests\ApiTestCase;
+use App\Models\Category;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
-class CategoryControllerIndexTest extends ApiTestCase
+class CategoryControllerIndexTest extends TestCase
 {
-    public function testIndex(): void
+    use RefreshDatabase;
+
+    public function test_index(): void
     {
-        $this->actingAsAdmin();
+        $this->actingAs(User::factory()->create());
+        $parent = Category::factory()->create([
+            'name' => 'Expenses',
+            'type' => 'fixed expenses',
+        ]);
+        Category::factory()->create([
+            'name' => 'Rent',
+            'parent_id' => $parent->id,
+            'type' => 'fixed expenses',
+        ]);
 
-        $response = $this->getJson("/api/categories");
-
-        $response->assertOk();
-
-        dd($response->json());
+        $this->getJson('/api/categories')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.name', 'Expenses')
+            ->assertJsonPath('data.0.children.0.name', 'Rent')
+            ->assertJsonFragment([
+                'name' => 'Rent',
+                'level' => 2,
+                'type' => 'fixed expenses',
+            ]);
     }
 }
