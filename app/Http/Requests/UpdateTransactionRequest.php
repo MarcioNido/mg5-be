@@ -48,8 +48,15 @@ class UpdateTransactionRequest extends FormRequest
             ],
             'notes' => ['nullable', 'string'],
             'status' => ['sometimes', Rule::in(['pending', 'posted'])],
+            'origin' => ['prohibited'],
             'splits' => ['sometimes', 'array'],
-            'splits.*.category_id' => ['required', 'integer'],
+            'splits.*.category_id' => [
+                'required',
+                'integer',
+                Rule::exists('categories', 'id')->where(
+                    fn ($query) => $query->where('tenant_id', Tenant::current()?->getKey())
+                ),
+            ],
             'splits.*.amount' => ['required', 'decimal:0,4'],
             'splits.*.description' => ['nullable', 'string', 'max:255'],
         ];

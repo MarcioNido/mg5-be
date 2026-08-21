@@ -4,43 +4,54 @@ namespace App\Http\Controllers;
 
 use App\Enums\TransactionOrigin;
 use App\Enums\TransactionStatus;
+use App\Http\Requests\IndexTransactionRequest;
 use App\Http\Requests\StoreTransactionRequest;
 use App\Http\Requests\UpdateTransactionRequest;
 use App\Http\Resources\TransactionResource;
+use App\Models\Category;
 use App\Models\Transaction;
 use App\Services\TransactionSplitService;
-use Carbon\Carbon;
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 
 class TransactionController extends Controller
 {
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(IndexTransactionRequest $request): AnonymousResourceCollection
     {
-        $transactions = Transaction::filters($request->get('filter'))
-            ->orders($request->get('orderBy'))
-            ->latest('transaction_date')
-            ->with(['category', 'account', 'splits.category']);
+        $filters = $request->validated();
+        $query = $this->resourceQuery();
 
-        $filters = $request->get('filter');
-        if (isset($filters['month'])) {
-            $firstDayOfMonth = (new Carbon(
-                $filters['month'].'-01'
-            ))->firstOfMonth();
-            $lastDayOfMonth = (new Carbon(
-                $filters['month'].'-01'
-            ))->endOfMonth();
-            $transactions->where('transaction_date', '>=', $firstDayOfMonth);
-            $transactions->where('transaction_date', '<=', $lastDayOfMonth);
-        }
+        $query->when(isset($filters['account_id']), fn ($query) => $query->where('account_id', $filters['account_id']))
+            ->when(isset($filters['status']), fn ($query) => $query->where('status', $filters['status']))
+            ->when(isset($filters['origin']), fn ($query) => $query->where('origin', $filters['origin']))
+            ->when(isset($filters['date_from']), fn ($query) => $query->whereDate('transaction_date', '>=', $filters['date_from']))
+            ->when(isset($filters['date_to']), fn ($query) => $query->whereDate('transaction_date', '<=', $filters['date_to']))
+            ->when(filled($filters['search'] ?? null), function ($query) use ($filters): void {
+                $search = '%'.$filters['search'].'%';
+                $query->where(fn ($query) => $query
+                    ->whereLike('description', $search, caseSensitive: false)
+                    ->orWhereLike('notes', $search, caseSensitive: false));
+            });
 
         if (isset($filters['category_id'])) {
-            $transactions->belongsToCategoryGroup($filters['category_id']);
+            $categoryIds = $this->categoryGroupIds((int) $filters['category_id']);
+            $query->where(fn ($query) => $query
+                ->whereIn('category_id', $categoryIds)
+                ->orWhereHas('splits', fn ($query) => $query->whereIn('category_id', $categoryIds)));
         }
 
-        return TransactionResource::collection($transactions->paginate());
+        if (($filters['uncategorized'] ?? false) === true) {
+            $query->whereNull('category_id')->whereDoesntHave('splits');
+        }
+
+        $transactions = $query
+            ->orderByDesc('transaction_date')
+            ->orderByDesc('id')
+            ->paginate($filters['per_page'] ?? 25)
+            ->withQueryString();
+
+        return TransactionResource::collection($transactions);
     }
 
     public function store(StoreTransactionRequest $request, TransactionSplitService $splits): TransactionResource
@@ -59,14 +70,12 @@ class TransactionController extends Controller
             return $transaction;
         });
 
-        return new TransactionResource($transaction->load(['account', 'category', 'splits.category']));
+        return new TransactionResource($this->prepareResource($transaction));
     }
 
     public function show(Transaction $transaction): TransactionResource
     {
-        $transaction->load(['category', 'account', 'splits.category']);
-
-        return new TransactionResource($transaction);
+        return new TransactionResource($this->prepareResource($transaction));
     }
 
     public function update(
@@ -87,7 +96,7 @@ class TransactionController extends Controller
             }
         });
 
-        return new TransactionResource($transaction->fresh()->load(['account', 'category', 'splits.category']));
+        return new TransactionResource($this->prepareResource($transaction->fresh()));
     }
 
     public function destroy(Transaction $transaction): Response
@@ -95,5 +104,43 @@ class TransactionController extends Controller
         $transaction->delete();
 
         return response()->noContent();
+    }
+
+    private function resourceQuery()
+    {
+        return Transaction::query()
+            ->with(['account', 'category.parent', 'splits.category.parent'])
+            ->withExists([
+                'importRows as has_import_rows',
+                'importedMovements as has_imported_movements',
+            ]);
+    }
+
+    private function prepareResource(Transaction $transaction): Transaction
+    {
+        $transaction->load(['account', 'category.parent', 'splits.category.parent']);
+        $transaction->loadExists([
+            'importRows as has_import_rows',
+            'importedMovements as has_imported_movements',
+        ]);
+
+        return $transaction;
+    }
+
+    /** @return array<int, int> */
+    private function categoryGroupIds(int $categoryId): array
+    {
+        $categoriesByParent = Category::query()
+            ->get(['id', 'parent_id'])
+            ->groupBy('parent_id');
+        $ids = [$categoryId];
+
+        for ($offset = 0; $offset < count($ids); $offset++) {
+            foreach ($categoriesByParent->get($ids[$offset], collect()) as $child) {
+                $ids[] = $child->id;
+            }
+        }
+
+        return array_values(array_unique($ids));
     }
 }

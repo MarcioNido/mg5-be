@@ -15,10 +15,9 @@ class CategoryController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         return CategoryResource::collection(
-            Category::filters($request->get("filter"))
-                ->orders($request->get("orderBy"))
-                //                ->whereNull("parent_id")
-                ->with("children")
+            Category::filters($request->get('filter'))
+                ->orders($request->get('orderBy'))
+                ->with('parent')
                 ->get()
         );
     }
@@ -26,17 +25,17 @@ class CategoryController extends Controller
     public function store(StoreCategoryRequest $request): CategoryResource
     {
         $data = $request->validated();
-        if (isset($data["parent"]["id"])) {
-            $data["parent_id"] = $data["parent"]["id"];
+        if (isset($data['parent']['id'])) {
+            $data['parent_id'] = $data['parent']['id'];
         }
-        unset($data["parent"]);
+        unset($data['parent']);
 
         return CategoryResource::make(Category::query()->create($data));
     }
 
     public function show(Category $category): CategoryResource
     {
-        return CategoryResource::make($category->load(["parent", "children"]));
+        return CategoryResource::make($category->load(['parent', 'children']));
     }
 
     public function update(
@@ -51,6 +50,7 @@ class CategoryController extends Controller
     public function destroy(Category $category): Response
     {
         $category->delete();
+
         return response()->noContent();
     }
 }
