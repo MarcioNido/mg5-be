@@ -72,8 +72,8 @@ Frontend work belongs in a separate task rooted in the `mg5-fe` repository.
 
 ## Phase 5: Core frontend workflows
 
-**Status: Phase 5A.1 and Phase 5A.2 complete. Phase 5B.1 complete — the
-transaction HTTP contract is ready. Frontend Phase 5B.2 remains pending.**
+**Status: Phase 5A.1, 5A.2, 5B.1, and 5B.2 complete. Phase 5C.1 complete — the
+match-review HTTP contract is ready. Frontend Phase 5C.2 remains pending.**
 
 Implement in this order:
 
@@ -87,10 +87,10 @@ Implement in this order:
 
 Phase 5B.1 stabilizes the paginated, tenant-aware transaction API and its
 category selector contract. Phase 5B.2 consumes that contract for transaction
-listing, filters, editing, and uncategorized review. Pending-to-import matching
-confirmation/rejection remains reserved for Phase 5C. Reconciliation UI,
-administrative category management, and categorization rules are not part of
-Phase 5B.
+listing, filters, editing, and uncategorized review. Phase 5C.1 adds the
+tenant-aware grouped match-review API; Phase 5C.2 will implement its frontend.
+Bank reconciliation remains the next core workflow after matching. Administrative
+category management and categorization rules remain later work.
 
 ## Phase 6: Management dashboard
 

@@ -109,23 +109,36 @@ class TransactionMatchingService
         });
     }
 
-    public function reject(MatchSuggestion $suggestion): void
+    public function reject(MatchSuggestion $suggestion): int
     {
-        DB::transaction(function () use ($suggestion): void {
+        return DB::transaction(function () use ($suggestion): int {
             $lockedSuggestion = MatchSuggestion::query()->whereKey($suggestion->id)->lockForUpdate()->firstOrFail();
             $this->ensure($lockedSuggestion->status === MatchSuggestionStatus::Pending, 'This suggestion is no longer pending.');
 
             $row = ImportRow::query()->whereKey($lockedSuggestion->import_row_id)->lockForUpdate()->firstOrFail();
             $this->ensure($row->status === ImportRowStatus::NeedsReview, 'The import row is no longer awaiting review.');
+            $movement = ImportedMovement::query()->whereKey($row->imported_movement_id)->lockForUpdate()->first();
+            $imported = Transaction::query()->whereKey($row->transaction_id)->lockForUpdate()->first();
+            $pending = Transaction::query()->whereKey($lockedSuggestion->pending_transaction_id)->lockForUpdate()->first();
+            $this->ensure($imported !== null, 'The imported transaction no longer exists.');
             $this->ensure(
-                Transaction::query()->whereKey($row->transaction_id)->lockForUpdate()->exists(),
-                'The imported transaction no longer exists.'
+                $pending !== null && $pending->status === TransactionStatus::Pending,
+                'The candidate transaction is no longer pending.'
+            );
+            $this->ensure(
+                $movement !== null && $movement->transaction_id === $imported->id,
+                'The imported movement identity is no longer linked to this transaction.'
             );
 
             $lockedSuggestion->update(['status' => MatchSuggestionStatus::Rejected]);
-            if (! $row->suggestions()->where('status', MatchSuggestionStatus::Pending->value)->exists()) {
+            $remainingCandidates = $row->suggestions()
+                ->where('status', MatchSuggestionStatus::Pending->value)
+                ->count();
+            if ($remainingCandidates === 0) {
                 $row->update(['status' => ImportRowStatus::Imported]);
             }
+
+            return $remainingCandidates;
         });
     }
 

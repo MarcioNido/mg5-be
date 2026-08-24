@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateTransactionRequest;
 use App\Http\Resources\TransactionResource;
 use App\Models\Category;
 use App\Models\Transaction;
+use App\Services\TransactionResourceLoader;
 use App\Services\TransactionSplitService;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
@@ -17,10 +18,12 @@ use Illuminate\Support\Facades\DB;
 
 class TransactionController extends Controller
 {
+    public function __construct(private readonly TransactionResourceLoader $resourceLoader) {}
+
     public function index(IndexTransactionRequest $request): AnonymousResourceCollection
     {
         $filters = $request->validated();
-        $query = $this->resourceQuery();
+        $query = $this->resourceLoader->query();
 
         $query->when(isset($filters['account_id']), fn ($query) => $query->where('account_id', $filters['account_id']))
             ->when(isset($filters['status']), fn ($query) => $query->where('status', $filters['status']))
@@ -70,12 +73,12 @@ class TransactionController extends Controller
             return $transaction;
         });
 
-        return new TransactionResource($this->prepareResource($transaction));
+        return new TransactionResource($this->resourceLoader->prepare($transaction));
     }
 
     public function show(Transaction $transaction): TransactionResource
     {
-        return new TransactionResource($this->prepareResource($transaction));
+        return new TransactionResource($this->resourceLoader->prepare($transaction));
     }
 
     public function update(
@@ -96,7 +99,7 @@ class TransactionController extends Controller
             }
         });
 
-        return new TransactionResource($this->prepareResource($transaction->fresh()));
+        return new TransactionResource($this->resourceLoader->prepare($transaction->fresh()));
     }
 
     public function destroy(Transaction $transaction): Response
@@ -104,27 +107,6 @@ class TransactionController extends Controller
         $transaction->delete();
 
         return response()->noContent();
-    }
-
-    private function resourceQuery()
-    {
-        return Transaction::query()
-            ->with(['account', 'category.parent', 'splits.category.parent'])
-            ->withExists([
-                'importRows as has_import_rows',
-                'importedMovements as has_imported_movements',
-            ]);
-    }
-
-    private function prepareResource(Transaction $transaction): Transaction
-    {
-        $transaction->load(['account', 'category.parent', 'splits.category.parent']);
-        $transaction->loadExists([
-            'importRows as has_import_rows',
-            'importedMovements as has_imported_movements',
-        ]);
-
-        return $transaction;
     }
 
     /** @return array<int, int> */
