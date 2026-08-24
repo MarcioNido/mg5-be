@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreReconciliationRequest extends FormRequest
+class IndexReconciliationRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -14,8 +14,8 @@ class StoreReconciliationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'statement_date' => ['required', 'date_format:Y-m-d'],
-            'entered_bank_balance' => ['required', 'string', 'regex:/^-?\d{1,15}(?:\.\d{1,4})?$/'],
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'per_page' => ['sometimes', 'integer', 'between:1,50'],
         ];
     }
 }

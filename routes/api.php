@@ -69,6 +69,7 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function (): void {
     Route::post('/match-suggestions/{suggestion}/reject', [MatchSuggestionController::class, 'reject']);
     Route::get('/accounts/{account}/reconciliations', [ReconciliationController::class, 'index']);
     Route::post('/accounts/{account}/reconciliations', [ReconciliationController::class, 'store']);
+    Route::get('/accounts/{account}/reconciliations/preview', [ReconciliationController::class, 'preview']);
     Route::get('/accounts/{account}/reconciliations/latest', [ReconciliationController::class, 'latest']);
 });
 

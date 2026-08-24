@@ -27,13 +27,14 @@ class ReconciliationService
         ));
     }
 
-    public function reconcile(Account $account, string $statementDate, int|float|string $enteredBalance): Reconciliation
+    public function reconcile(Account $account, string $statementDate, string $enteredBalance): Reconciliation
     {
-        $calculated = $this->calculate($account, $statementDate);
+        $date = Carbon::parse($statementDate, config('app.business_timezone'))->startOfDay();
+        $calculated = $this->calculate($account, $date);
         $entered = Money::decimal(Money::units($enteredBalance));
 
         return Reconciliation::query()->updateOrCreate(
-            ['account_id' => $account->id, 'statement_date' => $statementDate],
+            ['account_id' => $account->id, 'statement_date' => $date],
             [
                 'entered_bank_balance' => $entered,
                 'calculated_balance' => $calculated,
@@ -80,6 +81,7 @@ class ReconciliationService
         return $account->reconciliations()
             ->whereNotNull('reconciled_at')
             ->orderByDesc('statement_date')
+            ->orderByDesc('id')
             ->first();
     }
 }

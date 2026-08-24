@@ -2,17 +2,41 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\IndexReconciliationRequest;
+use App\Http\Requests\PreviewReconciliationRequest;
 use App\Http\Requests\StoreReconciliationRequest;
+use App\Http\Resources\ReconciliationPreviewResource;
+use App\Http\Resources\ReconciliationResource;
 use App\Models\Account;
 use App\Services\ReconciliationService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class ReconciliationController extends Controller
 {
-    public function index(Account $account): JsonResponse
+    public function index(IndexReconciliationRequest $request, Account $account): AnonymousResourceCollection
     {
-        return response()->json(['data' => $account->reconciliations()->orderByDesc('statement_date')->get()
-            ->each->append('is_valid')]);
+        $filters = $request->validated();
+        $reconciliations = $account->reconciliations()
+            ->orderByDesc('statement_date')
+            ->orderByDesc('id')
+            ->paginate($filters['per_page'] ?? 15)
+            ->withQueryString();
+
+        return ReconciliationResource::collection($reconciliations);
+    }
+
+    public function preview(
+        PreviewReconciliationRequest $request,
+        Account $account,
+        ReconciliationService $service
+    ): ReconciliationPreviewResource {
+        $statementDate = $request->validated('statement_date');
+
+        return new ReconciliationPreviewResource([
+            'statement_date' => $statementDate,
+            'calculated_balance' => $service->calculate($account, $statementDate),
+        ]);
     }
 
     public function store(
@@ -22,17 +46,21 @@ class ReconciliationController extends Controller
     ): JsonResponse {
         $reconciliation = $service->reconcile(
             $account,
-            (string) $request->string('statement_date'),
-            $request->input('entered_bank_balance')
+            $request->validated('statement_date'),
+            $request->validated('entered_bank_balance')
         );
 
-        return response()->json(['data' => $reconciliation->append('is_valid')], 201);
+        return (new ReconciliationResource($reconciliation))
+            ->response()
+            ->setStatusCode($reconciliation->wasRecentlyCreated ? 201 : 200);
     }
 
     public function latest(Account $account, ReconciliationService $service): JsonResponse
     {
         $latest = $service->latestValid($account);
 
-        return response()->json(['data' => $latest?->append('is_valid')]);
+        return $latest === null
+            ? response()->json(['data' => null])
+            : (new ReconciliationResource($latest))->response();
     }
 }
