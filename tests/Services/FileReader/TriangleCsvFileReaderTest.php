@@ -18,6 +18,7 @@ class TriangleCsvFileReaderTest extends TestCase
         $this->assertCount(10, $rows);
         $this->assertSame('7727', $rows[0]['normalized']['account_number']);
         $this->assertSame('-24.1500', $rows[0]['normalized']['amount']);
+        $this->assertSame('CAD', $rows[0]['normalized']['currency']);
         $this->assertNotEmpty($rows[0]['normalized']['bank_reference']);
     }
 }

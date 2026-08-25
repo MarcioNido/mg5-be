@@ -64,3 +64,29 @@ uncertain, stop and preserve the source statement rather than compensating with
 an invented transaction or checkpoint. End each verified working session with
 a checksummed backup and follow the Phase 7A recovery guide when restoration is
 required.
+
+## RBC CSV compatibility and pilot import order
+
+MG5 accepts the exact supported RBC header with or without one leading UTF-8
+BOM. Current RBC exports may leave commas in Description 2 unquoted. The reader
+reconstructs all fields between Description 1 and the final CAD/USD fields as
+Description 2, including multiple commas; standard quoted commas continue to
+work normally. Exactly one final currency field must contain an amount.
+
+Every normalized RBC or Triangle row carries its statement currency. MG5
+rejects a row when that currency differs from the selected account currency,
+before it creates either a transaction or an imported-movement identity. Keep
+CAD and USD accounts separate and verify the selected account before upload.
+
+For the initial RBC chequing pilot, import the overlapping exports in this safe
+order:
+
+1. `(6)`
+2. `(3)`
+3. `(7)`
+
+Overlapping rows are expected to be deduplicated while legitimate repeated
+occurrences remain distinct. After each file, inspect the import's total,
+processed, failed, imported, and duplicate counts before continuing. Stop if a
+file has parser failures, an unexpected currency, or counts that do not agree
+with the reviewed overlap.

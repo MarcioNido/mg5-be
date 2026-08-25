@@ -2,8 +2,10 @@
 
 namespace App\Services\FileReader;
 
+use App\Services\Money;
 use Generator;
 use Illuminate\Support\Carbon;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -32,10 +34,6 @@ class RbcCsvFileReader implements CsvFileReader
 
     const DESCRIPTION_1 = 4;
 
-    const DESCRIPTION_2 = 5;
-
-    const AMOUNT = 6;
-
     /**
      * @throws UnsupportedFileTypeException
      */
@@ -60,6 +58,23 @@ class RbcCsvFileReader implements CsvFileReader
         while ($line = $this->line()) {
             $lineNumber++;
             try {
+                if (count($line) < 8) {
+                    throw new RuntimeException('RBC row must contain at least eight columns.');
+                }
+
+                $description2 = implode(',', array_slice($line, self::DESCRIPTION_1 + 1, -2));
+                $cadAmount = $line[count($line) - 2];
+                $usdAmount = $line[count($line) - 1];
+                $hasCadAmount = $cadAmount !== '';
+                $hasUsdAmount = $usdAmount !== '';
+
+                if ($hasCadAmount === $hasUsdAmount) {
+                    throw new RuntimeException('RBC row must contain exactly one currency amount.');
+                }
+
+                $amount = $hasCadAmount ? $cadAmount : $usdAmount;
+                Money::units($amount);
+
                 yield [
                     'line_number' => $lineNumber,
                     'raw' => $line,
@@ -67,8 +82,9 @@ class RbcCsvFileReader implements CsvFileReader
                         'account_number' => $line[self::ACCOUNT_NUMBER],
                         'bank_reference' => trim($line[self::CHEQUE_NUMBER]) ?: null,
                         'transaction_date' => Carbon::createFromFormat('m/d/Y', $line[self::TRANSACTION_DATE])->toDateString(),
-                        'description' => trim($line[self::DESCRIPTION_1].' '.$line[self::DESCRIPTION_2]),
-                        'amount' => $line[self::AMOUNT],
+                        'description' => trim($line[self::DESCRIPTION_1].' '.$description2),
+                        'amount' => $amount,
+                        'currency' => $hasCadAmount ? 'CAD' : 'USD',
                     ],
                 ];
             } catch (Throwable $exception) {
@@ -79,7 +95,7 @@ class RbcCsvFileReader implements CsvFileReader
 
     public function line(): bool|array
     {
-        return fgetcsv($this->handler);
+        return fgetcsv($this->handler, null, ',', '"', '');
     }
 
     public function rewind(): void

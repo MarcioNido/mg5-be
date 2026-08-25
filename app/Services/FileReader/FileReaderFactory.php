@@ -4,6 +4,10 @@ namespace App\Services\FileReader;
 
 class FileReaderFactory
 {
+    private const RBC_HEADER = ['Account Type', 'Account Number', 'Transaction Date', 'Cheque Number', 'Description 1', 'Description 2', 'CAD$', 'USD$'];
+
+    private const TRIANGLE_HEADER = ['MY ACCOUNT TRANSACTIONS'];
+
     /**
      * @throws UnsupportedFileTypeException
      */
@@ -31,25 +35,28 @@ class FileReaderFactory
 
     private static function isRbcFileFormat(string $filePath): bool
     {
-        $handler = @fopen($filePath, 'r');
-        if ($handler === false) {
-            return false;
-        }
-        $header = fgetcsv($handler);
-        fclose($handler);
-
-        return $header === ['Account Type', 'Account Number', 'Transaction Date', 'Cheque Number', 'Description 1', 'Description 2', 'CAD$', 'USD$'];
+        return self::header($filePath) === self::RBC_HEADER;
     }
 
     private static function isTriangleFileFormat(string $filePath): bool
+    {
+        return self::header($filePath) === self::TRIANGLE_HEADER;
+    }
+
+    private static function header(string $filePath): array|false
     {
         $handler = @fopen($filePath, 'r');
         if ($handler === false) {
             return false;
         }
-        $header = fgetcsv($handler);
+
+        $header = fgetcsv($handler, null, ',', '"', '');
         fclose($handler);
 
-        return $header === ['MY ACCOUNT TRANSACTIONS'];
+        if ($header !== false && isset($header[0]) && str_starts_with($header[0], "\xEF\xBB\xBF")) {
+            $header[0] = substr($header[0], 3);
+        }
+
+        return $header;
     }
 }

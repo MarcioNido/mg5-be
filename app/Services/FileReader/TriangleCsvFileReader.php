@@ -69,6 +69,7 @@ class TriangleCsvFileReader implements CsvFileReader
                         'transaction_date' => Carbon::createFromFormat('Y-m-d', $line[self::TRANSACTION_DATE])->toDateString(),
                         'description' => trim($line[self::DESCRIPTION]),
                         'amount' => Money::decimal(-Money::units($line[self::AMOUNT])),
+                        'currency' => 'CAD',
                     ],
                 ];
             } catch (Throwable $exception) {
@@ -79,7 +80,7 @@ class TriangleCsvFileReader implements CsvFileReader
 
     public function line(): bool|array
     {
-        return fgetcsv($this->handler);
+        return fgetcsv($this->handler, null, ',', '"', '');
     }
 
     public function rewind(): void

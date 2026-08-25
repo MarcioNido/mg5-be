@@ -88,6 +88,10 @@ class CsvImportService
 
     private function movementFingerprint(File $import, array $normalized): string
     {
+        if ($normalized['currency'] !== $import->account?->currency) {
+            throw new \RuntimeException('CSV row currency does not match the selected account currency.');
+        }
+
         $expectedAccountNumber = $import->account?->account_number;
         if ($expectedAccountNumber !== null
             && $normalized['account_number'] !== null

@@ -75,6 +75,53 @@ class CsvImportCharacterizationTest extends TestCase
         $this->assertSame(10, ImportRow::query()->where('status', ImportRowStatus::Duplicate->value)->count());
     }
 
+    public function test_overlapping_rbc_exports_with_different_comma_quoting_are_idempotent(): void
+    {
+        $header = 'Account Type,Account Number,Transaction Date,Cheque Number,Description 1,Description 2,CAD$,USD$';
+        $firstPath = $this->temporaryCsv($header."\nChequing,1234,08/01/2026,CHK-1,BASE,one,two,-12.34,\n");
+        $secondPath = $this->temporaryCsv($header."\nChequing,1234,08/01/2026,CHK-1,BASE,\"one,two\",-12.34,\n");
+        $account = Account::factory()->create(['account_number' => '1234', 'currency' => 'CAD']);
+        $service = app(CsvImportService::class);
+
+        try {
+            $first = $service->create($account, $firstPath, 'first.csv', $firstPath);
+            $service->process($first, $firstPath);
+            $second = $service->create($account, $secondPath, 'second.csv', $secondPath);
+            $service->process($second, $secondPath);
+        } finally {
+            @unlink($firstPath);
+            @unlink($secondPath);
+        }
+
+        $this->assertDatabaseCount(Transaction::class, 1);
+        $this->assertSame('BASE one,two', Transaction::query()->firstOrFail()->description);
+        $this->assertSame(ImportRowStatus::Duplicate, $second->rows()->firstOrFail()->status);
+    }
+
+    public function test_currency_mismatch_fails_before_creating_a_transaction_or_movement_identity(): void
+    {
+        $header = 'Account Type,Account Number,Transaction Date,Cheque Number,Description 1,Description 2,CAD$,USD$';
+        $path = $this->temporaryCsv($header."\nChequing,1234,08/01/2026,CHK-1,USD ROW,,,12.34\n");
+        $account = Account::factory()->create(['account_number' => '1234', 'currency' => 'CAD']);
+        $service = app(CsvImportService::class);
+
+        try {
+            $import = $service->create($account, $path, 'usd.csv', $path);
+            $service->process($import, $path);
+        } finally {
+            @unlink($path);
+        }
+
+        $row = $import->rows()->firstOrFail();
+        $this->assertSame(ImportRowStatus::Failed, $row->status);
+        $this->assertSame('USD', $row->normalized_payload['currency']);
+        $this->assertSame('CSV row currency does not match the selected account currency.', $row->error_message);
+        $this->assertStringNotContainsString('1234', $row->error_message);
+        $this->assertStringNotContainsString('12.34', $row->error_message);
+        $this->assertDatabaseCount(Transaction::class, 0);
+        $this->assertDatabaseCount(ImportedMovement::class, 0);
+    }
+
     public function test_identical_legitimate_rows_use_occurrences_and_a_concurrency_safe_identity(): void
     {
         $header = 'Account Type,Account Number,Transaction Date,Cheque Number,Description 1,Description 2,CAD$,USD$';
