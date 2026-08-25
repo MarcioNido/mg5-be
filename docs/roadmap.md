@@ -72,9 +72,9 @@ Frontend work belongs in a separate task rooted in the `mg5-fe` repository.
 
 ## Phase 5: Core frontend workflows
 
-**Status: Phase 5A.1, 5A.2, 5B.1, 5B.2, 5C.1, 5C.2, 5D.1, and 5E.1 complete.
-The category and automatic-rule HTTP contracts are ready for frontend Phase
-5E.2.**
+**Status: Phase 5A.1 through 5E.2 complete, including the backend APIs and the
+CSV import, transaction, match-review, reconciliation, category, and automatic
+rule frontend workflows.**
 
 Implement in this order:
 
@@ -91,12 +91,22 @@ category selector contract. Phase 5B.2 consumes that contract for transaction
 listing, filters, editing, and uncategorized review. Phase 5C.1 adds the
 tenant-aware grouped match-review API, and Phase 5C.2 implements its frontend.
 Phase 5D.1 stabilizes preview, paginated history, store/correction, latest-valid,
-and automatic recalculation for reconciliation; Phase 5D.2 will implement its
+and automatic recalculation for reconciliation; Phase 5D.2 implements its
 frontend. Phase 5E.1 adds canonical management category kinds, safe three-level
 hierarchy administration, distinct Personal and Clinic plans, and deterministic
-literal categorization rules; Phase 5E.2 will implement their frontend.
+literal categorization rules; Phase 5E.2 implements their frontend.
 
 ## Phase 6: Management dashboard
+
+**Current backend increment: Phase 6.1 — trustworthy tenant-aware management
+dashboard summary API.**
+
+Phase 6.1 deliberately reports only confirmed balances, reconciliation state,
+signed posted movement by canonical category type and top-level management
+category, confirmed net movement, and current workflow counts. Accounting
+profit, tax liability, formal free cash flow, debt schedules, and semantic
+inference from mutable category names remain deferred until durable reporting
+mappings exist.
 
 Start with a small dashboard:
 

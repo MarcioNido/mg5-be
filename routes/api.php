@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\BalanceController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\DashboardSummaryController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\MatchSuggestionController;
 use App\Http\Controllers\ReconciliationController;
@@ -64,6 +65,7 @@ Route::middleware(['auth:sanctum', 'tenant'])->get('/files/{file}', [
 ]);
 
 Route::middleware(['auth:sanctum', 'tenant'])->group(function (): void {
+    Route::get('/dashboard/summary', DashboardSummaryController::class);
     Route::get('/match-suggestions', [MatchSuggestionController::class, 'index']);
     Route::post('/match-suggestions/{suggestion}/confirm', [MatchSuggestionController::class, 'confirm']);
     Route::post('/match-suggestions/{suggestion}/reject', [MatchSuggestionController::class, 'reject']);
