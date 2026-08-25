@@ -159,6 +159,46 @@ class Phase5AImportApiTest extends TestCase
         $this->assertDatabaseCount('imports', 0);
     }
 
+    public function test_duplicate_upload_retries_rows_that_previously_failed_to_parse(): void
+    {
+        Storage::fake('local');
+        $user = $this->userWithBothTenants();
+        $account = Account::factory()->create(['account_number' => null, 'currency' => 'CAD']);
+        $contents = "Account Type,Account Number,Transaction Date,Cheque Number,Description 1,Description 2,CAD$,USD$\n".
+            "Chequing,,08/19/2026,,RETRY ROW,,-10.00,,\n";
+        $storedPath = 'files/previously-failed.csv';
+        Storage::disk('local')->put($storedPath, $contents);
+        $import = File::factory()->create([
+            'account_id' => $account->id,
+            'filename' => $storedPath,
+            'original_filename' => 'previously-failed.csv',
+            'status' => ImportStatus::CompleteWithErrors,
+            'file_fingerprint' => hash('sha256', $contents),
+            'total_rows' => 1,
+            'processed_rows' => 0,
+            'failed_rows' => 1,
+        ]);
+        $this->row($import, 2, null, ImportRowStatus::Failed);
+
+        $this->actingAs($user)->post('/api/files', [
+            'account_id' => $account->id,
+            'file' => UploadedFile::fake()->createWithContent('retry.csv', $contents),
+        ])->assertOk()
+            ->assertJsonPath('meta.duplicate_upload', true)
+            ->assertJsonPath('data.id', $import->id)
+            ->assertJsonPath('data.status', 'complete')
+            ->assertJsonPath('data.processed_rows', 1)
+            ->assertJsonPath('data.failed_rows', 0);
+
+        $this->assertDatabaseCount('transactions', 1);
+        $this->assertDatabaseHas('import_rows', [
+            'import_id' => $import->id,
+            'line_number' => 2,
+            'status' => ImportRowStatus::Imported->value,
+            'error_message' => null,
+        ]);
+    }
+
     public function test_upload_extension_and_size_failures_use_laravel_file_errors(): void
     {
         Storage::fake('local');

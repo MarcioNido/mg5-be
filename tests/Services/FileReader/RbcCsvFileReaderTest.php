@@ -71,6 +71,25 @@ class RbcCsvFileReaderTest extends TestCase
         $this->assertSame(['Chequing', '1234', '08/01/2026', 'CHK-1', 'BASE', 'DETAIL', '-12.34', ''], $rows[0]['raw']);
     }
 
+    public function test_accepts_legacy_rbc_rows_with_an_extra_empty_trailing_column(): void
+    {
+        $path = $this->temporaryCsv(self::HEADER."\n".
+            rtrim($this->row('LEGACY CAD', '-12.34', ''), "\n").",\n".
+            rtrim($this->row('LEGACY USD', '', '23.45'), "\n").",\n"
+        );
+
+        try {
+            $rows = iterator_to_array((new RbcCsvFileReader($path))->rows());
+        } finally {
+            @unlink($path);
+        }
+
+        $this->assertSame(['amount' => '-12.34', 'currency' => 'CAD'], array_intersect_key($rows[0]['normalized'], array_flip(['amount', 'currency'])));
+        $this->assertSame(['amount' => '23.45', 'currency' => 'USD'], array_intersect_key($rows[1]['normalized'], array_flip(['amount', 'currency'])));
+        $this->assertCount(9, $rows[0]['raw']);
+        $this->assertSame('', $rows[0]['raw'][8]);
+    }
+
     public function test_selects_one_final_currency_and_rejects_invalid_rows(): void
     {
         $path = $this->temporaryCsv(self::HEADER."\n".

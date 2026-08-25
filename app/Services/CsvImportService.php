@@ -119,20 +119,24 @@ class CsvImportService
         $normalized = $data['normalized'];
 
         DB::transaction(function () use ($import, $data, $source, $normalized, $fingerprint, $occurrence): void {
-            $row = ImportRow::query()->firstOrCreate(
-                ['import_id' => $import->id, 'line_number' => $data['line_number']],
-                [
-                    'account_id' => $import->account_id,
-                    'raw_payload' => $data['raw'],
-                    'normalized_payload' => $normalized,
-                    'fingerprint' => $fingerprint,
-                    'occurrence' => $occurrence,
-                    'status' => ImportRowStatus::Pending,
-                ]
-            );
-            if (! $row->wasRecentlyCreated) {
+            $row = ImportRow::query()->firstOrNew([
+                'import_id' => $import->id,
+                'line_number' => $data['line_number'],
+            ]);
+            if ($row->exists && $row->status !== ImportRowStatus::Failed) {
                 return;
             }
+            $row->fill([
+                'account_id' => $import->account_id,
+                'transaction_id' => null,
+                'imported_movement_id' => null,
+                'raw_payload' => $data['raw'],
+                'normalized_payload' => $normalized,
+                'fingerprint' => $fingerprint,
+                'occurrence' => $occurrence,
+                'status' => ImportRowStatus::Pending,
+                'error_message' => null,
+            ])->save();
 
             $identity = [
                 'tenant_id' => $import->tenant_id,

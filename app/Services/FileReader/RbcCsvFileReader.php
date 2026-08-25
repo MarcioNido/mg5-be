@@ -57,9 +57,14 @@ class RbcCsvFileReader implements CsvFileReader
         $lineNumber = 1;
         while ($line = $this->line()) {
             $lineNumber++;
+            $raw = $line;
             try {
                 if (count($line) < 8) {
                     throw new RuntimeException('RBC row must contain at least eight columns.');
+                }
+
+                if ($this->hasLegacyTrailingColumn($line)) {
+                    array_pop($line);
                 }
 
                 $description2 = implode(',', array_slice($line, self::DESCRIPTION_1 + 1, -2));
@@ -77,7 +82,7 @@ class RbcCsvFileReader implements CsvFileReader
 
                 yield [
                     'line_number' => $lineNumber,
-                    'raw' => $line,
+                    'raw' => $raw,
                     'normalized' => [
                         'account_number' => $line[self::ACCOUNT_NUMBER],
                         'bank_reference' => trim($line[self::CHEQUE_NUMBER]) ?: null,
@@ -88,9 +93,41 @@ class RbcCsvFileReader implements CsvFileReader
                     ],
                 ];
             } catch (Throwable $exception) {
-                yield ['line_number' => $lineNumber, 'raw' => $line, 'normalized' => null, 'error' => $exception->getMessage()];
+                yield ['line_number' => $lineNumber, 'raw' => $raw, 'normalized' => null, 'error' => $exception->getMessage()];
             }
         }
+    }
+
+    private function hasLegacyTrailingColumn(array $line): bool
+    {
+        if (count($line) < 9 || $line[count($line) - 1] !== '') {
+            return false;
+        }
+
+        $standardHasOneAmount = $this->hasExactlyOneAmount(
+            $line[count($line) - 2],
+            $line[count($line) - 1],
+        );
+        $legacyHasOneAmount = $this->hasExactlyOneAmount(
+            $line[count($line) - 3],
+            $line[count($line) - 2],
+        );
+
+        if (! $standardHasOneAmount && $legacyHasOneAmount) {
+            return true;
+        }
+
+        // A legacy USD row is structurally ambiguous with a current CAD row.
+        // An empty legacy CAD column identifies the former without relying on
+        // descriptions or account names.
+        return $standardHasOneAmount
+            && $legacyHasOneAmount
+            && $line[count($line) - 3] === '';
+    }
+
+    private function hasExactlyOneAmount(string $cadAmount, string $usdAmount): bool
+    {
+        return ($cadAmount !== '') !== ($usdAmount !== '');
     }
 
     public function line(): bool|array

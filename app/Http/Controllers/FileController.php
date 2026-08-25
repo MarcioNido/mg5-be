@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ImportStatus;
 use App\Events\FileUploadedEvent;
 use App\Http\Requests\IndexFileRequest;
 use App\Http\Requests\StoreFileRequest;
@@ -77,7 +78,9 @@ class FileController extends Controller
             Storage::delete($path);
         }
 
-        if (! $duplicateUpload) {
+        $retryingFailedRows = $duplicateUpload && $file->status === ImportStatus::CompleteWithErrors;
+
+        if (! $duplicateUpload || $retryingFailedRows) {
             FileUploadedEvent::dispatch($file);
         }
 
