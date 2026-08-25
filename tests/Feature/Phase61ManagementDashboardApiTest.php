@@ -87,14 +87,7 @@ class Phase61ManagementDashboardApiTest extends ApiTestCase
             'account_totals_by_currency' => [],
             'period_activity' => [
                 'posted_transactions_count' => 0,
-                'amounts_by_type' => [
-                    'income' => '0.0000',
-                    'expense' => '0.0000',
-                    'transfer' => '0.0000',
-                ],
-                'uncategorized_amount' => '0.0000',
-                'confirmed_net_change' => '0.0000',
-                'groups' => [],
+                'by_currency' => [],
             ],
             'workflow' => [
                 'pending_transactions_count' => 0,
@@ -214,28 +207,110 @@ class Phase61ManagementDashboardApiTest extends ApiTestCase
 
         $response = $this->getJson('/api/dashboard/summary?month=2026-08')->assertOk();
         $activity = $response->json('data.period_activity');
+        $cadActivity = $activity['by_currency'][0];
 
         $this->assertSame(6, $activity['posted_transactions_count']);
+        $this->assertSame('CAD', $cadActivity['currency']);
+        $this->assertSame(6, $cadActivity['posted_transactions_count']);
         $this->assertSame([
             'income' => '90.0000',
             'expense' => '-25.0000',
             'transfer' => '-59.0000',
-        ], $activity['amounts_by_type']);
-        $this->assertSame('2.0000', $activity['uncategorized_amount']);
-        $this->assertSame('8.0000', $activity['confirmed_net_change']);
+        ], $cadActivity['amounts_by_type']);
+        $this->assertSame('2.0000', $cadActivity['uncategorized_amount']);
+        $this->assertSame('8.0000', $cadActivity['confirmed_net_change']);
         $this->assertSame(
             [$expenseRoot->id, $incomeRoot->id, $transferRoot->id],
-            collect($activity['groups'])->pluck('category.id')->all()
+            collect($cadActivity['groups'])->pluck('category.id')->all()
         );
-        $expenseGroup = collect($activity['groups'])->firstWhere('category.id', $expenseRoot->id);
+        $expenseGroup = collect($cadActivity['groups'])->firstWhere('category.id', $expenseRoot->id);
         $this->assertSame('-10.0000', $expenseGroup['amounts_by_type']['income']);
         $this->assertSame('-25.0000', $expenseGroup['amounts_by_type']['expense']);
         $this->assertSame('-35.0000', $expenseGroup['net_change']);
         $this->assertSame(
-            Money::units($activity['confirmed_net_change']),
-            collect($activity['groups'])->sum(fn (array $group): int => Money::units($group['net_change']))
-                + Money::units($activity['uncategorized_amount'])
+            Money::units($cadActivity['confirmed_net_change']),
+            collect($cadActivity['groups'])->sum(fn (array $group): int => Money::units($group['net_change']))
+                + Money::units($cadActivity['uncategorized_amount'])
         );
+    }
+
+    public function test_period_activity_separates_currency_buckets_and_reconciles_each_one_exactly(): void
+    {
+        $this->actingAsAdmin();
+        $cad = Account::factory()->create(['currency' => 'CAD']);
+        $usd = Account::factory()->create(['currency' => 'USD']);
+        $root = Category::factory()->create(['name' => 'Shared management group', 'type' => 'expense']);
+        $income = Category::factory()->create([
+            'parent_id' => $root->id, 'name' => 'Independent income', 'type' => 'income',
+        ]);
+        $transfer = Category::factory()->create([
+            'parent_id' => $root->id, 'name' => 'Independent transfer', 'type' => 'transfer',
+        ]);
+
+        $this->transaction($cad, '100.0000', TransactionStatus::Posted, '2026-08-01', $income);
+        $this->transaction($cad, '-10.0000', TransactionStatus::Posted, '2026-08-02');
+        $cadSplit = $this->transaction($cad, '-30.0000', TransactionStatus::Posted, '2026-08-03', $income);
+        app(TransactionSplitService::class)->replace($cadSplit, [
+            ['category_id' => $root->id, 'amount' => '-20.0000'],
+            ['category_id' => $transfer->id, 'amount' => '-10.0000'],
+        ]);
+
+        $this->transaction($usd, '7.0000', TransactionStatus::Posted, '2026-08-04', $income);
+        $this->transaction($usd, '-2.0000', TransactionStatus::Posted, '2026-08-05');
+        $usdSplit = $this->transaction($usd, '-4.0000', TransactionStatus::Posted, '2026-08-06', $income);
+        app(TransactionSplitService::class)->replace($usdSplit, [
+            ['category_id' => $root->id, 'amount' => '-3.0000'],
+            ['category_id' => $income->id, 'amount' => '-1.0000'],
+        ]);
+
+        $deletedAccount = Account::factory()->create(['currency' => 'AUD']);
+        $this->transaction($deletedAccount, '999.0000', TransactionStatus::Posted, '2026-08-07', $income);
+        $deletedAccount->delete();
+        $this->transaction($cad, '888.0000', TransactionStatus::Pending, '2026-08-08', $income);
+        $deletedTransaction = $this->transaction($usd, '777.0000', TransactionStatus::Posted, '2026-08-09', $income);
+        $deletedTransaction->delete();
+
+        $response = $this->getJson('/api/dashboard/summary?month=2026-08')->assertOk();
+        $activity = $response->json('data.period_activity');
+        $buckets = collect($activity['by_currency'])->keyBy('currency');
+
+        $this->assertSame(['CAD', 'USD'], collect($activity['by_currency'])->pluck('currency')->all());
+        $this->assertSame(6, $activity['posted_transactions_count']);
+        $this->assertSame(6, $buckets->sum('posted_transactions_count'));
+        foreach (['amounts_by_type', 'uncategorized_amount', 'confirmed_net_change', 'groups'] as $unsafeKey) {
+            $this->assertArrayNotHasKey($unsafeKey, $activity);
+        }
+
+        $this->assertSame(3, $buckets['CAD']['posted_transactions_count']);
+        $this->assertSame([
+            'income' => '100.0000',
+            'expense' => '-20.0000',
+            'transfer' => '-10.0000',
+        ], $buckets['CAD']['amounts_by_type']);
+        $this->assertSame('-10.0000', $buckets['CAD']['uncategorized_amount']);
+        $this->assertSame('60.0000', $buckets['CAD']['confirmed_net_change']);
+
+        $this->assertSame(3, $buckets['USD']['posted_transactions_count']);
+        $this->assertSame([
+            'income' => '6.0000',
+            'expense' => '-3.0000',
+            'transfer' => '0.0000',
+        ], $buckets['USD']['amounts_by_type']);
+        $this->assertSame('-2.0000', $buckets['USD']['uncategorized_amount']);
+        $this->assertSame('1.0000', $buckets['USD']['confirmed_net_change']);
+
+        foreach (['CAD', 'USD'] as $currency) {
+            $bucket = $buckets[$currency];
+            $this->assertSame([$root->id], collect($bucket['groups'])->pluck('category.id')->all());
+            $this->assertSame(
+                Money::units($bucket['confirmed_net_change']),
+                collect($bucket['groups'])->sum(fn (array $group): int => Money::units($group['net_change']))
+                    + Money::units($bucket['uncategorized_amount'])
+            );
+        }
+
+        $this->assertStringNotContainsString('exchange_rate', $response->getContent());
+        $this->assertStringNotContainsString('converted', $response->getContent());
     }
 
     public function test_workflow_counts_are_tenant_wide_exclude_deleted_and_treat_splits_as_categorized(): void
@@ -280,11 +355,13 @@ class Phase61ManagementDashboardApiTest extends ApiTestCase
         $personal = $this->withHeader('X-Tenant-Slug', 'personal')
             ->getJson('/api/dashboard/summary')->assertOk();
         $personal->assertJsonPath('data.accounts.0.name', 'Personal account')
+            ->assertJsonPath('data.period_activity.by_currency.0.confirmed_net_change', '1.0000')
             ->assertJsonMissing(['name' => 'Clinic account'])
             ->assertJsonMissing(['name' => 'Clinic category']);
         $clinicResponse = $this->withHeader('X-Tenant-Slug', 'clinic')
             ->getJson('/api/dashboard/summary')->assertOk();
         $clinicResponse->assertJsonPath('data.accounts.0.name', 'Clinic account')
+            ->assertJsonPath('data.period_activity.by_currency.0.confirmed_net_change', '2.0000')
             ->assertJsonMissing(['name' => 'Personal account'])
             ->assertJsonMissing(['name' => 'Personal category']);
 
@@ -302,7 +379,7 @@ class Phase61ManagementDashboardApiTest extends ApiTestCase
         $this->assertSame(0, Reconciliation::query()->count());
         $summary = app(DashboardSummaryService::class)->summarize('2026-08');
         $this->assertSame([], $summary['accounts']);
-        $this->assertSame('0.0000', $summary['period_activity']['confirmed_net_change']);
+        $this->assertSame([], $summary['period_activity']['by_currency']);
     }
 
     public function test_query_count_is_bounded_as_dashboard_data_grows(): void
@@ -323,9 +400,14 @@ class Phase61ManagementDashboardApiTest extends ApiTestCase
         Tenant::query()->where('slug', 'personal')->firstOrFail()->makeCurrent();
 
         foreach (range(1, $count) as $index) {
-            $account = Account::factory()->create(['name' => "Performance {$count}-{$index}"]);
+            $account = Account::factory()->create([
+                'name' => "Performance {$count}-{$index}",
+                'currency' => $index % 2 === 0 ? 'USD' : 'CAD',
+            ]);
             $root = Category::factory()->create(['name' => "Root {$count}-{$index}", 'type' => 'expense']);
             $child = Category::factory()->create(['parent_id' => $root->id, 'type' => 'income']);
+            $this->transaction($account, '1.0000', TransactionStatus::Posted, '2026-08-09', $child);
+            $this->transaction($account, '-1.0000', TransactionStatus::Posted, '2026-08-11');
             $transaction = $this->transaction($account, '10.0000', TransactionStatus::Posted, '2026-08-10', $child);
             app(TransactionSplitService::class)->replace($transaction, [[
                 'category_id' => $child->id, 'amount' => '10.0000',

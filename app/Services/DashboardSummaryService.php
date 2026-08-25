@@ -212,19 +212,34 @@ class DashboardSummaryService
     private function periodActivity(string $startDate, string $endDate): array
     {
         $base = fn (): Builder => Transaction::query()
-            ->where('status', TransactionStatus::Posted->value)
-            ->whereBetween('transaction_date', [$startDate, $endDate]);
+            ->join('accounts', function ($join): void {
+                $join->on('accounts.id', '=', 'transactions.account_id')
+                    ->on('accounts.tenant_id', '=', 'transactions.tenant_id')
+                    ->whereNull('accounts.deleted_at');
+            })
+            ->where('transactions.status', TransactionStatus::Posted->value)
+            ->whereBetween('transactions.transaction_date', [$startDate, $endDate]);
 
-        $transactionUnits = $this->moneyUnitsSql('amount');
+        $transactionUnits = $this->moneyUnitsSql('transactions.amount');
         $splitUnits = $this->moneyUnitsSql('transaction_splits.amount');
-        $totals = $base()->selectRaw("COUNT(*) AS transaction_count, COALESCE(SUM({$transactionUnits}), 0) AS net_units")
-            ->firstOrFail();
-        $uncategorized = $base()->whereNull('category_id')->whereDoesntHave('splits')
-            ->selectRaw("COALESCE(SUM({$transactionUnits}), 0) AS amount_units")
-            ->firstOrFail();
-        $direct = $base()->whereNotNull('category_id')->whereDoesntHave('splits')
-            ->groupBy('category_id')
-            ->selectRaw("category_id, SUM({$transactionUnits}) AS amount_units")
+        $totals = $base()
+            ->groupBy('accounts.currency')
+            ->select('accounts.currency')
+            ->selectRaw("COUNT(*) AS transaction_count, SUM({$transactionUnits}) AS net_units")
+            ->get();
+        $uncategorized = $base()
+            ->whereNull('transactions.category_id')
+            ->whereDoesntHave('splits')
+            ->groupBy('accounts.currency')
+            ->select('accounts.currency')
+            ->selectRaw("SUM({$transactionUnits}) AS amount_units")
+            ->get();
+        $direct = $base()
+            ->whereNotNull('transactions.category_id')
+            ->whereDoesntHave('splits')
+            ->groupBy('accounts.currency', 'transactions.category_id')
+            ->select('accounts.currency', 'transactions.category_id')
+            ->selectRaw("SUM({$transactionUnits}) AS amount_units")
             ->get();
         $splits = TransactionSplit::query()
             ->join('transactions', function ($join): void {
@@ -232,56 +247,84 @@ class DashboardSummaryService
                     ->on('transactions.tenant_id', '=', 'transaction_splits.tenant_id')
                     ->whereNull('transactions.deleted_at');
             })
+            ->join('accounts', function ($join): void {
+                $join->on('accounts.id', '=', 'transactions.account_id')
+                    ->on('accounts.tenant_id', '=', 'transactions.tenant_id')
+                    ->whereNull('accounts.deleted_at');
+            })
             ->where('transactions.status', TransactionStatus::Posted->value)
             ->whereBetween('transactions.transaction_date', [$startDate, $endDate])
-            ->groupBy('transaction_splits.category_id')
-            ->select('transaction_splits.category_id')
+            ->groupBy('accounts.currency', 'transaction_splits.category_id')
+            ->select('accounts.currency', 'transaction_splits.category_id')
             ->selectRaw("SUM({$splitUnits}) AS amount_units")
             ->get();
 
         $categories = Category::query()->get(['id', 'parent_id', 'name', 'type', 'level'])->keyBy('id');
-        $typeUnits = array_fill_keys(self::TYPES, 0);
-        $groupUnits = [];
+        $currencies = [];
+
+        foreach ($totals as $total) {
+            $currencies[$total->currency] = [
+                'transaction_count' => (int) $total->transaction_count,
+                'net_units' => (int) $total->net_units,
+                'uncategorized_units' => 0,
+                'type_units' => array_fill_keys(self::TYPES, 0),
+                'group_units' => [],
+            ];
+        }
+
+        foreach ($uncategorized as $amount) {
+            $currencies[$amount->currency]['uncategorized_units'] = (int) $amount->amount_units;
+        }
 
         foreach ($direct->concat($splits) as $allocation) {
             $category = $categories->get($allocation->category_id);
 
-            if ($category === null || ! array_key_exists($category->type, $typeUnits)) {
+            if ($category === null || ! array_key_exists($category->type, $currencies[$allocation->currency]['type_units'])) {
                 continue;
             }
 
             $units = (int) $allocation->amount_units;
-            $typeUnits[$category->type] += $units;
+            $currencies[$allocation->currency]['type_units'][$category->type] += $units;
             $root = $this->rootCategory($category, $categories);
-            $groupUnits[$root->id] ??= array_fill_keys(self::TYPES, 0);
-            $groupUnits[$root->id][$category->type] += $units;
+            $currencies[$allocation->currency]['group_units'][$root->id] ??= array_fill_keys(self::TYPES, 0);
+            $currencies[$allocation->currency]['group_units'][$root->id][$category->type] += $units;
         }
 
-        $groups = collect($groupUnits)->map(function (array $units, int|string $rootId) use ($categories): array {
-            $root = $categories->get((int) $rootId);
+        ksort($currencies, SORT_STRING);
+        $byCurrency = collect($currencies)->map(function (array $activity, string $currency) use ($categories): array {
+            $groups = collect($activity['group_units'])
+                ->map(function (array $units, int|string $rootId) use ($categories): array {
+                    $root = $categories->get((int) $rootId);
+
+                    return [
+                        'category' => [
+                            'id' => $root->id,
+                            'name' => $root->name,
+                            'type' => $root->type,
+                            'level' => $root->level,
+                        ],
+                        'amounts_by_type' => $this->decimalTypes($units),
+                        'net_change' => Money::decimal(array_sum($units)),
+                    ];
+                })->sortBy(fn (array $group): array => [
+                    $group['category']['type'],
+                    mb_strtolower($group['category']['name']),
+                    $group['category']['id'],
+                ])->values()->all();
 
             return [
-                'category' => [
-                    'id' => $root->id,
-                    'name' => $root->name,
-                    'type' => $root->type,
-                    'level' => $root->level,
-                ],
-                'amounts_by_type' => $this->decimalTypes($units),
-                'net_change' => Money::decimal(array_sum($units)),
+                'currency' => $currency,
+                'posted_transactions_count' => $activity['transaction_count'],
+                'amounts_by_type' => $this->decimalTypes($activity['type_units']),
+                'uncategorized_amount' => Money::decimal($activity['uncategorized_units']),
+                'confirmed_net_change' => Money::decimal($activity['net_units']),
+                'groups' => $groups,
             ];
-        })->sortBy(fn (array $group): array => [
-            $group['category']['type'],
-            mb_strtolower($group['category']['name']),
-            $group['category']['id'],
-        ])->values()->all();
+        })->values()->all();
 
         return [
-            'posted_transactions_count' => (int) $totals->transaction_count,
-            'amounts_by_type' => $this->decimalTypes($typeUnits),
-            'uncategorized_amount' => Money::decimal((int) $uncategorized->amount_units),
-            'confirmed_net_change' => Money::decimal((int) $totals->net_units),
-            'groups' => $groups,
+            'posted_transactions_count' => $totals->sum('transaction_count'),
+            'by_currency' => $byCurrency,
         ];
     }
 

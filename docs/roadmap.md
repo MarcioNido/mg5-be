@@ -102,8 +102,9 @@ literal categorization rules; Phase 5E.2 implements their frontend.
 dashboard summary API.**
 
 Phase 6.1 deliberately reports only confirmed balances, reconciliation state,
-signed posted movement by canonical category type and top-level management
-category, confirmed net movement, and current workflow counts. Accounting
+currency-specific signed posted movement by canonical category type and
+top-level management category, currency-specific confirmed net movement, and
+current workflow counts. It never combines or converts currencies. Accounting
 profit, tax liability, formal free cash flow, debt schedules, and semantic
 inference from mutable category names remain deferred until durable reporting
 mappings exist.

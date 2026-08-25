@@ -61,27 +61,45 @@ The response is one explicit resource:
     ],
     "period_activity": {
       "posted_transactions_count": 24,
-      "amounts_by_type": {
-        "income": "10000.0000",
-        "expense": "-7250.0000",
-        "transfer": "-500.0000"
-      },
-      "uncategorized_amount": "-25.0000",
-      "confirmed_net_change": "2225.0000",
-      "groups": [
+      "by_currency": [
         {
-          "category": {
-            "id": 3,
-            "name": "Direct clinical costs",
-            "type": "expense",
-            "level": 1
+          "currency": "CAD",
+          "posted_transactions_count": 20,
+          "amounts_by_type": {
+            "income": "10000.0000",
+            "expense": "-7250.0000",
+            "transfer": "-500.0000"
           },
+          "uncategorized_amount": "-25.0000",
+          "confirmed_net_change": "2225.0000",
+          "groups": [
+            {
+              "category": {
+                "id": 3,
+                "name": "Direct clinical costs",
+                "type": "expense",
+                "level": 1
+              },
+              "amounts_by_type": {
+                "income": "10000.0000",
+                "expense": "-7250.0000",
+                "transfer": "-500.0000"
+              },
+              "net_change": "2250.0000"
+            }
+          ]
+        },
+        {
+          "currency": "USD",
+          "posted_transactions_count": 4,
           "amounts_by_type": {
             "income": "0.0000",
-            "expense": "-2500.0000",
+            "expense": "0.0000",
             "transfer": "0.0000"
           },
-          "net_change": "-2500.0000"
+          "uncategorized_amount": "650.0000",
+          "confirmed_net_change": "650.0000",
+          "groups": []
         }
       ]
     },
@@ -152,10 +170,18 @@ those inclusive boundaries. Pending and soft-deleted transactions are
 excluded. For the current month, this remains a complete-month date filter;
 `as_of_date` limits current balances, not the selected-period contract.
 
-`posted_transactions_count` counts each bank transaction once.
-`confirmed_net_change` is the signed sum of each included transaction amount
-once, including uncategorized transactions. Expense refunds and other reversed
-movements keep their bank sign.
+The top-level `posted_transactions_count` counts each included bank transaction
+once and is currency-independent. `by_currency` is ordered by the persisted
+currency code of each transaction's active account. Its bucket counts sum to
+the top-level count. A period with no posted activity returns a count of zero
+and `by_currency: []`; it does not manufacture a bucket from tenant or
+application defaults.
+
+Every monetary subtotal exists only inside a currency bucket. MG5 never adds
+CAD, USD, or any other currencies together and performs no currency conversion.
+Within each bucket, `confirmed_net_change` is the signed sum of each included
+transaction amount once, including uncategorized transactions. Expense refunds
+and other reversed movements keep their bank sign.
 
 A transaction without splits allocates its complete amount to its direct
 category. A transaction with splits allocates only its split amounts; an
@@ -164,17 +190,24 @@ and cannot double count the bank movement. A transaction with neither a direct
 category nor splits contributes its complete amount to `uncategorized_amount`
 and `confirmed_net_change`, but not to category-type or group totals.
 
-Canonical `income`, `expense`, and `transfer` totals use the type of the
-category actually assigned to each direct amount or split. A child type is
-independent of its parent type. Each allocation also rolls up to the assigned
-category's top-level ancestor. Because descendants may have different types,
-every root group contains all three type subtotals and a signed `net_change`.
-Groups with no activity are omitted and active groups are ordered by root type,
+Canonical `income`, `expense`, and `transfer` totals are calculated separately
+per currency and use the type of the category actually assigned to each direct
+amount or split. A child type is independent of its parent type. Each allocation
+also rolls up to the assigned category's top-level ancestor within that same
+currency. The same management category can therefore appear independently in
+multiple currency buckets. Because descendants may have different types, every
+root group contains all three type subtotals and a signed `net_change`. Groups
+with no activity are omitted and active groups are ordered by root type,
 case-insensitive root name, and root ID.
 
 No group or movement meaning is inferred from mutable English category names.
 When split allocations are valid, group net changes plus
-`uncategorized_amount` equal `confirmed_net_change` in exact integer units.
+`uncategorized_amount` equal `confirmed_net_change` in exact integer units
+independently in every currency bucket.
+
+The future frontend must render one currency at a time or use separate
+sections/cards for each bucket. A tenant-wide record count may be shown, but no
+currency-specific monetary subtotal may be presented as a combined amount.
 
 ## Current workflow counts
 
@@ -201,9 +234,10 @@ categories, transactions, splits, reconciliations, balances, and totals never
 cross contexts.
 
 The service uses a fixed set of account, reconciliation, category, aggregate,
-and workflow queries. Balance and period totals are grouped in SQL and returned
-as integer monetary units. Only the small active account list, active category
-hierarchy, latest reconciliation rows, and grouped aggregate rows are loaded.
+and workflow queries. Balance and period totals are grouped by account currency
+in SQL and returned as integer monetary units. Only the small active account
+list, active category hierarchy, latest reconciliation rows, and grouped
+aggregate rows are loaded.
 It does not call `ReconciliationService` per account and does not load complete
 transaction history. The feature regression test verifies that query count is
 unchanged when accounts, reconciliations, categories, direct transactions, and
