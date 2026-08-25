@@ -30,7 +30,7 @@ class StoreTransactionRequest extends FormRequest
                 'required',
                 'integer',
                 Rule::exists('accounts', 'id')->where(
-                    fn ($query) => $query->where('tenant_id', Tenant::current()?->getKey())
+                    fn ($query) => $query->where('tenant_id', Tenant::current()?->getKey())->whereNull('deleted_at')
                 ),
             ],
             'transaction_date' => ['required', 'date'],
@@ -40,7 +40,7 @@ class StoreTransactionRequest extends FormRequest
                 'nullable',
                 'integer',
                 Rule::exists('categories', 'id')->where(
-                    fn ($query) => $query->where('tenant_id', Tenant::current()?->getKey())
+                    fn ($query) => $query->where('tenant_id', Tenant::current()?->getKey())->whereNull('deleted_at')
                 ),
             ],
             'notes' => ['nullable', 'string'],

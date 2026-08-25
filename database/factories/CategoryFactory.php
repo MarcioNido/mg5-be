@@ -2,10 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\Category;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Category>
+ * @extends Factory<Category>
  */
 class CategoryFactory extends Factory
 {
@@ -17,16 +18,10 @@ class CategoryFactory extends Factory
     public function definition(): array
     {
         return [
-            "parent_id" => null,
-            "name" => $this->faker->word,
-            "level" => 1,
-            "type" => $this->faker->randomElement([
-                "income",
-                "deductions",
-                "fixed expenses",
-                "variable expenses",
-                "financial transactions",
-            ]),
+            'parent_id' => null,
+            'name' => $this->faker->word,
+            'level' => 1,
+            'type' => $this->faker->randomElement(['income', 'expense', 'transfer']),
         ];
     }
 }

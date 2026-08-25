@@ -75,6 +75,12 @@ This separation allows MG5 to show operating result and cash flow without
 mistaking loan principal, account transfers, or equipment purchases for normal
 operating expenses.
 
+Management categories use three canonical kinds: `income` for revenue and
+inflows, `expense` for operating, financing, tax, and capital cash outflows,
+and `transfer` for debt principal, owner activity, savings movements, and
+between-account transfers. They form a maximum three-level management
+hierarchy. They are not accounts, journal entries, or debit/credit accounting.
+
 ## Initial clinic category groups
 
 - Revenue: OHIP, uninsured services, private insurance, third-party reports and
@@ -86,12 +92,19 @@ operating expenses.
 - Occupancy: rent, utilities, cleaning, repairs, and security.
 - Administration: software, office supplies, professional fees, licences,
   insurance, marketing, education, bank charges, and merchant fees.
-- Financing: loan interest and loan principal.
+- Financing costs: loan interest.
 - Taxes and reserves: estimated income tax, payroll remittances, HST payments,
   and other tax payments.
 - Capital expenditures: medical equipment, computers, furniture, and leasehold
   improvements.
-- Owner transactions and internal transfers.
+- Debt principal and transfers: equipment-loan principal, other-loan principal,
+  and transfers between accounts.
+- Owner transactions: contributions and withdrawals.
+
+Personal uses a distinct practical plan covering income, housing, food,
+transportation, health, lifestyle, taxes and financial costs, savings and
+investments, and debt principal and transfers. The Personal plan does not
+receive clinic-specific categories.
 
 The external accountant can later provide optional account codes or mappings
 without changing MG5's management-oriented category structure.

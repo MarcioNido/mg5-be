@@ -19,7 +19,7 @@ class RuleFactory extends Factory
     public function definition()
     {
         return [
-            'content' => '%'.fake()->word().'%',
+            'content' => fake()->word(),
             'account_id' => null,
             'category_id' => Category::factory(),
         ];

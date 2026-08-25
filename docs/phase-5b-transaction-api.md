@@ -96,12 +96,12 @@ parent ID without a second endpoint.
   "category": {
     "id": 8,
     "name": "Medical supplies",
-    "type": "variable expenses",
+    "type": "expense",
     "level": 2,
     "parent": {
       "id": 3,
       "name": "Direct clinical costs",
-      "type": "variable expenses",
+      "type": "expense",
       "level": 1
     }
   },
@@ -114,12 +114,12 @@ parent ID without a second endpoint.
       "category": {
         "id": 8,
         "name": "Medical supplies",
-        "type": "variable expenses",
+        "type": "expense",
         "level": 2,
         "parent": {
           "id": 3,
           "name": "Direct clinical costs",
-          "type": "variable expenses",
+          "type": "expense",
           "level": 1
         }
       }

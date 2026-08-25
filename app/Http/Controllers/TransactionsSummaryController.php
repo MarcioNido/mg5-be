@@ -11,25 +11,25 @@ class TransactionsSummaryController extends Controller
     {
         $transactions = Transaction::query()
             ->where(
-                "transaction_date",
-                ">=",
+                'transaction_date',
+                '>=',
                 Carbon::createFromDate($year, $month, 1)
             )
             ->where(
-                "transaction_date",
-                "<=",
+                'transaction_date',
+                '<=',
                 Carbon::createFromDate($year, $month, 1)->endOfMonth()
             )
-            ->whereHas("category", function ($query) {
-                $query->whereIn("type", ["income", "deductions"]);
+            ->whereHas('category', function ($query) {
+                $query->where('type', 'income');
             })
             ->get();
 
-        $income = $transactions->sum("amount");
+        $income = $transactions->sum('amount');
 
         return [
-            "income" => $income,
-            "transactions" => $transactions,
+            'income' => $income,
+            'transactions' => $transactions,
         ];
     }
 
@@ -37,28 +37,25 @@ class TransactionsSummaryController extends Controller
     {
         $transactions = Transaction::query()
             ->where(
-                "transaction_date",
-                ">=",
+                'transaction_date',
+                '>=',
                 Carbon::createFromDate($year, $month, 1)
             )
             ->where(
-                "transaction_date",
-                "<=",
+                'transaction_date',
+                '<=',
                 Carbon::createFromDate($year, $month, 1)->endOfMonth()
             )
-            ->whereHas("category", function ($query) {
-                $query->whereIn("type", [
-                    "fixed expenses",
-                    "variable expenses",
-                ]);
+            ->whereHas('category', function ($query) {
+                $query->where('type', 'expense');
             })
             ->get();
 
-        $expense = $transactions->sum("amount");
+        $expense = $transactions->sum('amount');
 
         return [
-            "expense" => $expense,
-            "transactions" => $transactions,
+            'expense' => $expense,
+            'transactions' => $transactions,
         ];
     }
 }

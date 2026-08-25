@@ -102,9 +102,11 @@ notes, and splits and must not create a second visible transaction.
 
 ## Categorization
 
-Rules continue to categorize imported transactions automatically. A rule may
-use normalized description content and optionally be limited to an account.
-Uncategorized transactions remain visible as an action item.
+Rules categorize transactions with case-insensitive literal description text
+and may optionally be limited to an account. Active rules run in ascending ID
+order, and the first match may update only a transaction with no direct
+category and no splits. Uncategorized transactions remain visible as an action
+item.
 
 A transaction may be split across multiple management categories as long as the
 split total equals the bank transaction amount. Splits do not affect bank

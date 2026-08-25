@@ -18,19 +18,17 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(TenantSeeder::class);
 
-        $admin = User::factory()->create([
-            'name' => 'Admin',
-            'email' => 'admin@moneyguru.com',
-            'password' => Hash::make('12345678'),
-        ]);
+        $admin = User::query()->firstOrCreate(
+            ['email' => 'admin@moneyguru.com'],
+            [
+                'name' => 'Admin',
+                'password' => Hash::make('12345678'),
+            ]
+        );
 
-        $admin->tenants()->sync(Tenant::query()->pluck('id'));
-
-        Tenant::query()->each(function (Tenant $tenant): void {
-            $tenant->makeCurrent();
-            $this->call(CategorySeeder::class);
-        });
+        $admin->tenants()->syncWithoutDetaching(Tenant::query()->pluck('id'));
 
         Tenant::forgetCurrent();
+        $this->call(CategorySeeder::class);
     }
 }

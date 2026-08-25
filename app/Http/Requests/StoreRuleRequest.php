@@ -23,24 +23,38 @@ class StoreRuleRequest extends FormRequest
      *
      * @return array<string, mixed>
      */
-    public function rules()
+    public function rules(): array
     {
         return [
-            'content' => 'required|string',
-            'account.id' => [
+            'match_text' => ['required', 'string', 'max:120', 'not_regex:/^\s*$/'],
+            'account_id' => [
                 'nullable',
-                'string',
+                'integer',
                 Rule::exists('accounts', 'id')->where(
-                    fn ($query) => $query->where('tenant_id', Tenant::current()?->getKey())
+                    fn ($query) => $query
+                        ->where('tenant_id', Tenant::current()?->getKey())
+                        ->whereNull('deleted_at')
                 ),
             ],
-            'category.id' => [
+            'category_id' => [
                 'required',
                 'integer',
                 Rule::exists('categories', 'id')->where(
-                    fn ($query) => $query->where('tenant_id', Tenant::current()?->getKey())
+                    fn ($query) => $query
+                        ->where('tenant_id', Tenant::current()?->getKey())
+                        ->whereNull('deleted_at')
                 ),
             ],
+            'content' => ['prohibited'],
+            'account' => ['prohibited'],
+            'category' => ['prohibited'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->input('match_text'))) {
+            $this->merge(['match_text' => trim($this->input('match_text'))]);
+        }
     }
 }

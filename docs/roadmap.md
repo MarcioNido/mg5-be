@@ -72,8 +72,9 @@ Frontend work belongs in a separate task rooted in the `mg5-fe` repository.
 
 ## Phase 5: Core frontend workflows
 
-**Status: Phase 5A.1, 5A.2, 5B.1, 5B.2, 5C.1, 5C.2, and 5D.1 complete. The
-bank-reconciliation HTTP contract is ready for frontend Phase 5D.2.**
+**Status: Phase 5A.1, 5A.2, 5B.1, 5B.2, 5C.1, 5C.2, 5D.1, and 5E.1 complete.
+The category and automatic-rule HTTP contracts are ready for frontend Phase
+5E.2.**
 
 Implement in this order:
 
@@ -91,8 +92,9 @@ listing, filters, editing, and uncategorized review. Phase 5C.1 adds the
 tenant-aware grouped match-review API, and Phase 5C.2 implements its frontend.
 Phase 5D.1 stabilizes preview, paginated history, store/correction, latest-valid,
 and automatic recalculation for reconciliation; Phase 5D.2 will implement its
-frontend. Administrative category management and categorization rules remain
-later work.
+frontend. Phase 5E.1 adds canonical management category kinds, safe three-level
+hierarchy administration, distinct Personal and Clinic plans, and deterministic
+literal categorization rules; Phase 5E.2 will implement their frontend.
 
 ## Phase 6: Management dashboard
 

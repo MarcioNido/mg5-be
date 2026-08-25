@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\CategoryType;
 use App\Models\Tenant;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -23,27 +24,29 @@ class StoreCategoryRequest extends FormRequest
      *
      * @return array<string, mixed>
      */
-    public function rules()
+    public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
-            'type' => [
-                'required',
-                Rule::in([
-                    'income',
-                    'deductions',
-                    'fixed expenses',
-                    'variable expenses',
-                    'financial transactions',
-                ]),
-            ],
-            'parent.id' => [
+            'name' => ['required', 'string', 'max:255', 'not_regex:/^\s*$/'],
+            'type' => ['required', Rule::enum(CategoryType::class)],
+            'parent_id' => [
                 'nullable',
+                'integer',
                 Rule::exists('categories', 'id')->where(
-                    fn ($query) => $query->where('tenant_id', Tenant::current()?->getKey())
+                    fn ($query) => $query
+                        ->where('tenant_id', Tenant::current()?->getKey())
+                        ->whereNull('deleted_at')
                 ),
             ],
-            //            "level" => ["required", "integer", "min:1", "max:3"],
+            'level' => ['prohibited'],
+            'parent' => ['prohibited'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->input('name'))) {
+            $this->merge(['name' => trim($this->input('name'))]);
+        }
     }
 }

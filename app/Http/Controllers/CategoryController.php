@@ -6,36 +6,40 @@ use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
 use App\Http\Resources\CategoryResource;
 use App\Models\Category;
+use App\Services\CategoryService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 
 class CategoryController extends Controller
 {
+    public function __construct(private readonly CategoryService $categories) {}
+
     public function index(Request $request): AnonymousResourceCollection
     {
         return CategoryResource::collection(
-            Category::filters($request->get('filter'))
-                ->orders($request->get('orderBy'))
+            Category::query()
                 ->with('parent')
+                ->orderBy('type')
+                ->orderByRaw('LOWER(name)')
+                ->orderBy('id')
                 ->get()
         );
     }
 
     public function store(StoreCategoryRequest $request): CategoryResource
     {
-        $data = $request->validated();
-        if (isset($data['parent']['id'])) {
-            $data['parent_id'] = $data['parent']['id'];
-        }
-        unset($data['parent']);
-
-        return CategoryResource::make(Category::query()->create($data));
+        return CategoryResource::make(
+            $this->categories->create($request->validated())->load('parent')
+        );
     }
 
     public function show(Category $category): CategoryResource
     {
-        return CategoryResource::make($category->load(['parent', 'children']));
+        return CategoryResource::make($category->load([
+            'parent',
+            'children' => fn ($query) => $query->orderByRaw('LOWER(name)')->orderBy('id'),
+        ]));
     }
 
     public function update(
@@ -43,13 +47,13 @@ class CategoryController extends Controller
         Category $category
     ): CategoryResource {
         return CategoryResource::make(
-            tap($category)->update($request->validated())
+            $this->categories->update($category, $request->validated())->load('parent')
         );
     }
 
     public function destroy(Category $category): Response
     {
-        $category->delete();
+        $this->categories->delete($category);
 
         return response()->noContent();
     }

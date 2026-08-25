@@ -16,12 +16,12 @@ class CategoryControllerIndexTest extends TestCase
         $this->actingAs(User::factory()->create());
         $parent = Category::factory()->create([
             'name' => 'Expenses',
-            'type' => 'fixed expenses',
+            'type' => 'expense',
         ]);
         Category::factory()->create([
             'name' => 'Rent',
             'parent_id' => $parent->id,
-            'type' => 'fixed expenses',
+            'type' => 'expense',
         ]);
 
         $this->getJson('/api/categories')
@@ -30,7 +30,7 @@ class CategoryControllerIndexTest extends TestCase
             ->assertJsonFragment([
                 'name' => 'Rent',
                 'level' => 2,
-                'type' => 'fixed expenses',
+                'type' => 'expense',
             ]);
     }
 }

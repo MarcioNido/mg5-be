@@ -12,16 +12,16 @@ class TransactionsBalanceController extends Controller
         // total income group by month, last 12 months
         $income = Transaction::query()
             ->selectRaw(
-                "YEAR(transaction_date) as year, MONTH(transaction_date) as month, sum(amount) as total"
+                'YEAR(transaction_date) as year, MONTH(transaction_date) as month, sum(amount) as total'
             )
-            ->where("transaction_date", ">=", now()->subMonths(12))
-            ->where("transaction_date", "<=", now())
-            ->whereHas("category", function ($query) {
-                $query->whereIn("type", ["income", "deductions"]);
+            ->where('transaction_date', '>=', now()->subMonths(12))
+            ->where('transaction_date', '<=', now())
+            ->whereHas('category', function ($query) {
+                $query->where('type', 'income');
             })
             ->groupBy(
-                DB::raw("YEAR(transaction_date)"),
-                DB::raw("MONTH(transaction_date)")
+                DB::raw('YEAR(transaction_date)'),
+                DB::raw('MONTH(transaction_date)')
             )
             ->get()
             //            ->pluck("total", "month")
@@ -29,27 +29,24 @@ class TransactionsBalanceController extends Controller
 
         $expense = Transaction::query()
             ->selectRaw(
-                "YEAR(transaction_date) as year, MONTH(transaction_date) as month, sum(amount) as total"
+                'YEAR(transaction_date) as year, MONTH(transaction_date) as month, sum(amount) as total'
             )
-            ->where("transaction_date", ">=", now()->subMonths(12))
-            ->where("transaction_date", "<=", now())
-            ->whereHas("category", function ($query) {
-                $query->whereIn("type", [
-                    "fixed expenses",
-                    "variable expenses",
-                ]);
+            ->where('transaction_date', '>=', now()->subMonths(12))
+            ->where('transaction_date', '<=', now())
+            ->whereHas('category', function ($query) {
+                $query->where('type', 'expense');
             })
             ->groupBy(
-                DB::raw("YEAR(transaction_date)"),
-                DB::raw("MONTH(transaction_date)")
+                DB::raw('YEAR(transaction_date)'),
+                DB::raw('MONTH(transaction_date)')
             )
             ->get()
             //            ->pluck("total", "month")
             ->toArray();
 
         return [
-            "income" => $income,
-            "expense" => $expense,
+            'income' => $income,
+            'expense' => $expense,
         ];
     }
 }

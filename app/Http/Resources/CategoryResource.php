@@ -6,6 +6,20 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class CategoryResource extends JsonResource
 {
+    public static function summary($category): ?array
+    {
+        if (! $category) {
+            return null;
+        }
+
+        return [
+            'id' => $category->id,
+            'name' => $category->name,
+            'type' => $category->type,
+            'level' => $category->level,
+        ];
+    }
+
     public function toArray($request): array
     {
         return [
@@ -13,12 +27,7 @@ class CategoryResource extends JsonResource
             'name' => $this->name,
             'type' => $this->type,
             'level' => $this->level,
-            'parent' => $this->whenLoaded('parent', fn () => $this->parent ? [
-                'id' => $this->parent->id,
-                'name' => $this->parent->name,
-                'type' => $this->parent->type,
-                'level' => $this->parent->level,
-            ] : null),
+            'parent' => $this->whenLoaded('parent', fn () => self::summary($this->parent)),
             'children' => CategoryResource::collection($this->whenLoaded('children')),
         ];
     }

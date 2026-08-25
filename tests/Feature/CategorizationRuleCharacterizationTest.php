@@ -24,7 +24,7 @@ class CategorizationRuleCharacterizationTest extends TestCase
         $matchingCategory = Category::factory()->create(['name' => 'Groceries']);
         $existingCategory = Category::factory()->create(['name' => 'Existing']);
         $rule = Rule::query()->create([
-            'content' => '%MARKET%',
+            'content' => 'MARKET',
             'account_id' => $account->id,
             'category_id' => $matchingCategory->id,
         ]);

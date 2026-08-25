@@ -33,7 +33,7 @@ class UpdateTransactionRequest extends FormRequest
                 'sometimes',
                 'integer',
                 Rule::exists('accounts', 'id')->where(
-                    fn ($query) => $query->where('tenant_id', Tenant::current()?->getKey())
+                    fn ($query) => $query->where('tenant_id', Tenant::current()?->getKey())->whereNull('deleted_at')
                 ),
             ],
             'transaction_date' => ['sometimes', 'date'],
@@ -43,7 +43,7 @@ class UpdateTransactionRequest extends FormRequest
                 'nullable',
                 'integer',
                 Rule::exists('categories', 'id')->where(
-                    fn ($query) => $query->where('tenant_id', Tenant::current()?->getKey())
+                    fn ($query) => $query->where('tenant_id', Tenant::current()?->getKey())->whereNull('deleted_at')
                 ),
             ],
             'notes' => ['nullable', 'string'],

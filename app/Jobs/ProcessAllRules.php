@@ -18,9 +18,8 @@ class ProcessAllRules implements ShouldQueue, TenantAware
 
     public function handle(): void
     {
-        $rules = Rule::query()->get();
-        foreach ($rules as $rule) {
-            ProcessRule::dispatch($rule, $this->force);
-        }
+        Rule::query()
+            ->orderBy('id')
+            ->each(fn (Rule $rule) => (new ProcessRule($rule, $this->force))->handle());
     }
 }

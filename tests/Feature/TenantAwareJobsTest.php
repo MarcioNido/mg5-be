@@ -69,7 +69,7 @@ class TenantAwareJobsTest extends TestCase
         ]);
         $category = Category::factory()->create();
         $rule = Rule::query()->create([
-            'content' => '%TENANT MATCH%',
+            'content' => 'TENANT MATCH',
             'account_id' => $account->id,
             'category_id' => $category->id,
         ]);
