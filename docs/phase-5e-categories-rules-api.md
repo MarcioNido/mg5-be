@@ -124,16 +124,17 @@ transfers with its own practical children.
 The seeder creates only categories. It creates no accounts, account numbers,
 transactions, or rules. Exact `(parent_id, name)` lookup makes installation
 tenant-aware, repeatable, additive, and non-destructive: it does not delete,
-rename, move, or overwrite an existing category. `DatabaseSeeder` also keeps
-the admin user and memberships idempotently.
+rename, move, or overwrite an existing category. `DatabaseSeeder` creates no
+users or memberships; administrators are created separately with the secure
+interactive bootstrap command.
 
 `php artisan db:seed --class=CategorySeeder` is independently executable. If a
 tenant is already current, it seeds only that tenant. With no current tenant,
 it locates `personal` and `clinic`, installs each plan in its own tenant
 context, and then leaves no tenant current. Missing configured tenants and
 unknown tenant slugs are harmless. `DatabaseSeeder` invokes this same behavior
-once after creating tenants and preserving the administrator memberships. Do
-not use a destructive reset to install plans.
+once after creating the required tenants. Do not use a destructive reset merely
+to install plans.
 
 ## Phase 5E.2 frontend handoff
 

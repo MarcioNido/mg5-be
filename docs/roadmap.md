@@ -127,12 +127,16 @@ Deferred until real-data usage:
 
 ## Phase 7: Operational safety and real-data pilot
 
-**Current increment: Phase 7A — operational database safety and backup/restore
-readiness.**
+**Current increment: Phase 7B.1 — secure clean baseline for the real-data
+pilot.**
 
-- Phase 7A provides documented, checksummed backups, guarded restoration, and a
-  disposable restore drill.
-- Phase 7B is the real-data pilot.
+- Phase 7A is complete. It provides documented, checksummed backups, guarded
+  restoration, and a disposable restore drill.
+- Phase 7B.1 removes seeded credentials, provides secure interactive
+  administrator bootstrap, and establishes the empty Personal and Clinic
+  baseline with complete recommended category plans.
+- Phase 7B.2 is the user-driven real-data pilot. Statements are not imported in
+  Phase 7B.1.
 - Phase 7C contains only corrections discovered during the pilot.
 
 Advanced management reporting remains deferred until real data has been used
