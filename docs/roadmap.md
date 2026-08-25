@@ -60,6 +60,8 @@ matching becomes independently large.
 
 ## Phase 4: Clean frontend foundation
 
+**Status: Complete.**
+
 1. Create a clean App Router application in `mg5-fe` using the licensed Minimals
    `simple-next-ts` 5.0 source.
 2. Remove demo pages, unused providers, mocks, and unnecessary dependencies.
@@ -98,8 +100,7 @@ literal categorization rules; Phase 5E.2 implements their frontend.
 
 ## Phase 6: Management dashboard
 
-**Current backend increment: Phase 6.1 — trustworthy tenant-aware management
-dashboard summary API.**
+**Status: Phase 6.1 backend and Phase 6.2 frontend complete.**
 
 Phase 6.1 deliberately reports only confirmed balances, reconciliation state,
 currency-specific signed posted movement by canonical category type and
@@ -109,19 +110,33 @@ profit, tax liability, formal free cash flow, debt schedules, and semantic
 inference from mutable category names remain deferred until durable reporting
 mappings exist.
 
-Start with a small dashboard:
+Delivered in Phases 6.1 and 6.2:
 
-- Current cash balance by account.
-- Reconciled-through date and accounts needing review.
-- Monthly revenue and operating expenses.
-- Loan payments and interest.
+- Current confirmed balances by account and currency.
+- Reconciliation status and accounts needing attention.
+- Currency-specific posted monthly movement.
+- Top-level management category groups.
+- Pending and uncategorized workflow counts.
+
+Deferred until real-data usage:
+
+- Dedicated loan principal and interest reporting.
 - Estimated tax reserve.
-- Free cash flow.
-- Pending and uncategorized transaction counts.
+- Formal free cash flow.
+- Budgets, forecasts, and investment scenarios.
 
-Budgeting, investment scenarios, debt schedules, and additional clinic metrics
-are deferred until the core data is reliable and the monthly workflow is being
-used consistently.
+## Phase 7: Operational safety and real-data pilot
+
+**Current increment: Phase 7A — operational database safety and backup/restore
+readiness.**
+
+- Phase 7A provides documented, checksummed backups, guarded restoration, and a
+  disposable restore drill.
+- Phase 7B is the real-data pilot.
+- Phase 7C contains only corrections discovered during the pilot.
+
+Advanced management reporting remains deferred until real data has been used
+for at least one or two monthly cycles.
 
 ## Deferred decisions
 
