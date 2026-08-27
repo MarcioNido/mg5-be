@@ -127,9 +127,9 @@ the account's reconciled-through date.
 
 The existing model-level reconciliation lifecycle remains authoritative for
 changes made through HTTP, services, imports, or other application code. A
-posted transaction insertion or deletion, or a change to its account, bank
-date, amount, or posted/pending state, recalculates every affected statement
-date. Moving an included transaction between accounts recalculates both the old
+posted transaction insertion, deletion, ignore/restore action, or a change to
+its account, bank date, amount, or posted/pending state, recalculates every
+affected statement date. Moving an included transaction between accounts recalculates both the old
 and new accounts. A transaction strictly after a statement date cannot change
 that row.
 
@@ -166,6 +166,6 @@ in the UI.
 
 This phase intentionally has no accounting periods, per-transaction cleared
 flags, statement-line ticking, approvals, audit actors, invalidation reasons,
-undo history, attachments, or bank feeds. It does not change imports, candidate
-matching, transaction CRUD, categories, rules, or splits. The existing schema
-already supports the contract, so no migration is required.
+undo history, attachments, or bank feeds. The later reversible duplicate-ignore
+marker is financial exclusion, not a persisted statement checkbox or period
+close.

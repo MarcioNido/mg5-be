@@ -28,12 +28,15 @@ class TransactionResource extends JsonResource
             'status' => $this->status->value,
             'origin' => $this->origin->value,
             'posted_at' => $this->posted_at?->toISOString(),
+            'ignored_at' => $this->ignored_at?->toISOString(),
+            'is_ignored' => $this->ignored_at !== null,
             'category_id' => $this->category_id,
             'category' => new CategoryResource($this->whenLoaded('category')),
             'splits' => TransactionSplitResource::collection($this->whenLoaded('splits')),
             'is_import_linked' => $isImportLinked,
             'bank_fields_editable' => ! $isImportLinked,
             'deletable' => ! $isImportLinked,
+            'can_ignore' => $isImportLinked,
         ];
     }
 }

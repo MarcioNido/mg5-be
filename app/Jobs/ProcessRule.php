@@ -29,6 +29,7 @@ class ProcessRule implements ShouldQueue, TenantAware
     public function handle(): void
     {
         $query = Transaction::query()
+            ->financiallyActive()
             ->whereDoesntHave('splits')
             ->when(! $this->force, fn ($query) => $query->whereNull('category_id'))
             ->when($this->rule->account_id, fn ($query) => $query->where('account_id', $this->rule->account_id));

@@ -45,6 +45,7 @@ class BalanceController extends Controller
         ));
 
         $monthTransactions = Transaction::query()
+            ->financiallyActive()
             ->selectRaw(
                 'SUM(CASE WHEN amount >= 0 THEN amount ELSE 0 END) as credits'
             )

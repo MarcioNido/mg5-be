@@ -241,8 +241,8 @@ class Phase5CMatchReviewApiTest extends ApiTestCase
 
         $this->assertSame(
             ['id', 'account_id', 'account', 'transaction_date', 'amount', 'description', 'notes', 'status',
-                'origin', 'posted_at', 'category_id', 'category', 'splits', 'is_import_linked',
-                'bank_fields_editable', 'deletable'],
+                'origin', 'posted_at', 'ignored_at', 'is_ignored', 'category_id', 'category', 'splits',
+                'is_import_linked', 'bank_fields_editable', 'deletable', 'can_ignore'],
             array_keys($response->json('data.transaction'))
         );
         $this->assertSame(ImportRowStatus::Matched, $row->fresh()->status);

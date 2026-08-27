@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Models\ImportedMovement;
 use App\Models\Tenant;
 use App\Models\Transaction;
+use App\Services\ReconciliationService;
 use App\Services\TransactionSplitService;
 use Illuminate\Support\Facades\DB;
 use Tests\ApiTestCase;
@@ -164,8 +165,9 @@ class Phase5BTransactionApiTest extends ApiTestCase
 
         $this->assertSame([
             'id', 'account_id', 'account', 'transaction_date', 'amount', 'description',
-            'notes', 'status', 'origin', 'posted_at', 'category_id', 'category',
-            'splits', 'is_import_linked', 'bank_fields_editable', 'deletable',
+            'notes', 'status', 'origin', 'posted_at', 'ignored_at', 'is_ignored',
+            'category_id', 'category', 'splits', 'is_import_linked',
+            'bank_fields_editable', 'deletable', 'can_ignore',
         ], array_keys($manualJson));
         $this->assertSame('-12.3400', $manualJson['amount']);
         $this->assertSame(['id', 'name', 'type', 'currency'], array_keys($manualJson['account']));
@@ -179,10 +181,13 @@ class Phase5BTransactionApiTest extends ApiTestCase
         $this->assertFalse($manualJson['is_import_linked']);
         $this->assertTrue($manualJson['bank_fields_editable']);
         $this->assertTrue($manualJson['deletable']);
+        $this->assertFalse($manualJson['can_ignore']);
+        $this->assertFalse($manualJson['is_ignored']);
         $this->assertTrue($importedJson['is_import_linked']);
         $this->assertSame('2026-05-02T12:00:00.000000Z', $importedJson['posted_at']);
         $this->assertFalse($importedJson['bank_fields_editable']);
         $this->assertFalse($importedJson['deletable']);
+        $this->assertTrue($importedJson['can_ignore']);
         $response->assertJsonMissing(['tenant_id' => $tenantId])
             ->assertJsonMissing(['account_number' => 'PRIVATE-123']);
         foreach (['fingerprint', 'raw_payload', 'normalized_payload', 'imported_movement_id'] as $privateField) {
@@ -288,6 +293,67 @@ class Phase5BTransactionApiTest extends ApiTestCase
         $this->deleteJson("/api/transactions/{$imported->id}")
             ->assertUnprocessable()
             ->assertJsonValidationErrors('transaction');
+    }
+
+    public function test_imported_transaction_can_be_ignored_and_restored_without_losing_its_audit_record(): void
+    {
+        $this->actingAsAdmin();
+        $account = Account::factory()->create(['opening_balance' => '0.0000']);
+        $imported = $this->transaction($account, '2026-08-02', [
+            'amount' => '100.0000',
+            'status' => TransactionStatus::Posted,
+            'origin' => TransactionOrigin::Csv,
+            'posted_at' => now(),
+        ]);
+        $this->linkImport($imported);
+        $reconciliation = app(ReconciliationService::class)->reconcile($account, '2026-08-31', '100.0000');
+        $this->assertTrue($reconciliation->is_valid);
+
+        $this->patchJson("/api/transactions/{$imported->id}", ['ignored' => true])
+            ->assertOk()
+            ->assertJsonPath('data.id', $imported->id)
+            ->assertJsonPath('data.status', 'posted')
+            ->assertJsonPath('data.is_ignored', true)
+            ->assertJsonPath('data.can_ignore', true);
+        Tenant::query()->where('slug', 'personal')->firstOrFail()->makeCurrent();
+
+        $this->assertDatabaseHas('transactions', ['id' => $imported->id, 'deleted_at' => null]);
+        $this->assertNotNull($imported->fresh()->ignored_at);
+        $this->assertSame('0.0000', app(ReconciliationService::class)->calculate($account, '2026-08-31'));
+        $this->assertFalse($reconciliation->fresh()->is_valid);
+        $this->getJson('/api/dashboard/summary?month=2026-08')
+            ->assertOk()
+            ->assertJsonPath('data.accounts.0.current_balance', '0.0000')
+            ->assertJsonPath('data.period_activity.posted_transactions_count', 0)
+            ->assertJsonPath('data.workflow.uncategorized_posted_count', 0);
+
+        $this->patchJson("/api/transactions/{$imported->id}", ['ignored' => false])
+            ->assertOk()
+            ->assertJsonPath('data.is_ignored', false)
+            ->assertJsonPath('data.ignored_at', null);
+        Tenant::query()->where('slug', 'personal')->firstOrFail()->makeCurrent();
+
+        $this->assertDatabaseHas('transactions', [
+            'id' => $imported->id,
+            'status' => TransactionStatus::Posted->value,
+            'ignored_at' => null,
+            'deleted_at' => null,
+        ]);
+        $this->assertSame('100.0000', app(ReconciliationService::class)->calculate($account, '2026-08-31'));
+        $this->assertTrue($reconciliation->fresh()->is_valid);
+    }
+
+    public function test_manual_transaction_cannot_be_marked_ignored(): void
+    {
+        $this->actingAsAdmin();
+        $account = Account::factory()->create();
+        $manual = $this->transaction($account, '2026-08-03');
+
+        $this->patchJson("/api/transactions/{$manual->id}", ['ignored' => true])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('ignored');
+
+        $this->assertNull($manual->fresh()->ignored_at);
     }
 
     public function test_filter_ids_and_route_binding_cannot_cross_tenants(): void

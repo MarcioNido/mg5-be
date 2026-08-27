@@ -20,6 +20,7 @@ class TransactionMatchingService
     public function process(ImportRow $row, array $bankData): Transaction
     {
         $candidates = Transaction::query()
+            ->financiallyActive()
             ->where('account_id', $row->account_id)
             ->where('status', TransactionStatus::Pending->value)
             ->where('amount', Money::decimal(Money::units($bankData['amount'])))
@@ -81,8 +82,8 @@ class TransactionMatchingService
             $imported = Transaction::query()->whereKey($row->transaction_id)->lockForUpdate()->first();
             $pending = Transaction::query()->whereKey($lockedSuggestion->pending_transaction_id)
                 ->with('splits')->lockForUpdate()->first();
-            $this->ensure($imported !== null, 'The imported transaction no longer exists.');
-            $this->ensure($pending !== null && $pending->status === TransactionStatus::Pending, 'The candidate transaction is no longer pending.');
+            $this->ensure($imported !== null && $imported->ignored_at === null, 'The imported transaction is no longer active.');
+            $this->ensure($pending !== null && $pending->status === TransactionStatus::Pending && $pending->ignored_at === null, 'The candidate transaction is no longer pending.');
             $this->ensure(
                 $movement !== null && $movement->transaction_id === $imported->id,
                 'The imported movement identity is no longer linked to this transaction.'
@@ -120,9 +121,9 @@ class TransactionMatchingService
             $movement = ImportedMovement::query()->whereKey($row->imported_movement_id)->lockForUpdate()->first();
             $imported = Transaction::query()->whereKey($row->transaction_id)->lockForUpdate()->first();
             $pending = Transaction::query()->whereKey($lockedSuggestion->pending_transaction_id)->lockForUpdate()->first();
-            $this->ensure($imported !== null, 'The imported transaction no longer exists.');
+            $this->ensure($imported !== null && $imported->ignored_at === null, 'The imported transaction is no longer active.');
             $this->ensure(
-                $pending !== null && $pending->status === TransactionStatus::Pending,
+                $pending !== null && $pending->status === TransactionStatus::Pending && $pending->ignored_at === null,
                 'The candidate transaction is no longer pending.'
             );
             $this->ensure(

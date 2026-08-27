@@ -15,6 +15,7 @@ class ReconciliationService
         $date = Carbon::parse($statementDate, config('app.business_timezone'))->toDateString();
         $opening = Money::units($account->opening_balance);
         $transactions = Transaction::query()
+            ->financiallyActive()
             ->where('account_id', $account->id)
             ->where('status', TransactionStatus::Posted->value)
             ->when($account->opening_balance_date, fn ($query) => $query->whereDate('transaction_date', '>', $account->opening_balance_date))

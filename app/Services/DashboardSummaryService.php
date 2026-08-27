@@ -76,6 +76,7 @@ class DashboardSummaryService
         $units = $this->moneyUnitsSql('transactions.amount');
 
         return Transaction::query()
+            ->financiallyActive()
             ->join('accounts', function ($join): void {
                 $join->on('accounts.id', '=', 'transactions.account_id')
                     ->on('accounts.tenant_id', '=', 'transactions.tenant_id')
@@ -212,6 +213,7 @@ class DashboardSummaryService
     private function periodActivity(string $startDate, string $endDate): array
     {
         $base = fn (): Builder => Transaction::query()
+            ->financiallyActive()
             ->join('accounts', function ($join): void {
                 $join->on('accounts.id', '=', 'transactions.account_id')
                     ->on('accounts.tenant_id', '=', 'transactions.tenant_id')
@@ -253,6 +255,7 @@ class DashboardSummaryService
                     ->whereNull('accounts.deleted_at');
             })
             ->where('transactions.status', TransactionStatus::Posted->value)
+            ->whereNull('transactions.ignored_at')
             ->whereBetween('transactions.transaction_date', [$startDate, $endDate])
             ->groupBy('accounts.currency', 'transaction_splits.category_id')
             ->select('accounts.currency', 'transaction_splits.category_id')
@@ -349,9 +352,11 @@ class DashboardSummaryService
     private function workflow(int $attentionCount): array
     {
         $pendingCount = Transaction::query()
+            ->financiallyActive()
             ->where('status', TransactionStatus::Pending->value)
             ->count();
         $uncategorized = Transaction::query()
+            ->financiallyActive()
             ->whereNull('category_id')
             ->whereDoesntHave('splits')
             ->selectRaw(

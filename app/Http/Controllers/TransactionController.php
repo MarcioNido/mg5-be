@@ -88,7 +88,11 @@ class TransactionController extends Controller
     ): TransactionResource {
         $validated = $request->validated();
         $splitData = $validated['splits'] ?? null;
-        unset($validated['splits']);
+        $ignored = array_key_exists('ignored', $validated) ? (bool) $validated['ignored'] : null;
+        unset($validated['splits'], $validated['ignored']);
+        if ($ignored !== null) {
+            $validated['ignored_at'] = $ignored ? now() : null;
+        }
         if (isset($validated['status'])) {
             $validated['posted_at'] = $validated['status'] === 'posted' ? ($transaction->posted_at ?? now()) : null;
         }

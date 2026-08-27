@@ -49,6 +49,7 @@ class UpdateTransactionRequest extends FormRequest
             'notes' => ['nullable', 'string'],
             'status' => ['sometimes', Rule::in(['pending', 'posted'])],
             'origin' => ['prohibited'],
+            'ignored' => ['sometimes', 'boolean'],
             'splits' => ['sometimes', 'array'],
             'splits.*.category_id' => [
                 'required',
@@ -67,7 +68,13 @@ class UpdateTransactionRequest extends FormRequest
         return [function (Validator $validator): void {
             $transaction = $this->route('transaction');
             if (! $transaction
-                || $validator->errors()->hasAny(['account_id', 'transaction_date', 'amount', 'status'])) {
+                || $validator->errors()->hasAny(['account_id', 'transaction_date', 'amount', 'status', 'ignored'])) {
+                return;
+            }
+
+            if ($this->has('ignored') && ! $transaction->isLinkedToImport()) {
+                $validator->errors()->add('ignored', 'Only a transaction linked to an import can be ignored.');
+
                 return;
             }
 

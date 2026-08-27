@@ -6,6 +6,7 @@ use App\Enums\TransactionOrigin;
 use App\Enums\TransactionStatus;
 use App\Models\Concerns\BelongsToTenant;
 use App\Services\ReconciliationService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -26,6 +27,7 @@ class Transaction extends BaseModel
         'status',
         'origin',
         'posted_at',
+        'ignored_at',
     ];
 
     protected array $allowedFilters = [
@@ -41,6 +43,7 @@ class Transaction extends BaseModel
         return [
             'amount' => 'decimal:4',
             'posted_at' => 'datetime',
+            'ignored_at' => 'datetime',
             'status' => TransactionStatus::class,
             'origin' => TransactionOrigin::class,
         ];
@@ -66,7 +69,7 @@ class Transaction extends BaseModel
         });
 
         static::saved(function (Transaction $transaction): void {
-            if ($transaction->wasRecentlyCreated || $transaction->wasChanged(['account_id', 'transaction_date', 'amount', 'status'])) {
+            if ($transaction->wasRecentlyCreated || $transaction->wasChanged(['account_id', 'transaction_date', 'amount', 'status', 'ignored_at'])) {
                 app(ReconciliationService::class)->recalculateForMutation($transaction, $transaction->getOriginal());
             }
         });
@@ -103,6 +106,11 @@ class Transaction extends BaseModel
     public function isLinkedToImport(): bool
     {
         return $this->importRows()->exists() || $this->importedMovements()->exists();
+    }
+
+    public function scopeFinanciallyActive(Builder $query): Builder
+    {
+        return $query->whereNull($query->qualifyColumn('ignored_at'));
     }
 
     public function scopeBelongsToCategoryGroup($query, $categoryId): void

@@ -24,12 +24,13 @@ class MatchSuggestionController extends Controller
         $pendingSuggestions = fn ($query) => $query
             ->where('status', MatchSuggestionStatus::Pending->value)
             ->whereHas('pendingTransaction', fn (Builder $query) => $query
+                ->financiallyActive()
                 ->where('status', TransactionStatus::Pending->value));
 
         $reviews = ImportRow::query()
             ->where('status', ImportRowStatus::NeedsReview->value)
             ->whereHas('account')
-            ->whereHas('transaction')
+            ->whereHas('transaction', fn (Builder $query) => $query->financiallyActive())
             ->whereHas('suggestions', $pendingSuggestions)
             ->when(isset($filters['account_id']), fn (Builder $query) => $query
                 ->where('account_id', $filters['account_id']))

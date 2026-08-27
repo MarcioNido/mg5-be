@@ -11,6 +11,7 @@ class TransactionsBalanceController extends Controller
     {
         // total income group by month, last 12 months
         $income = Transaction::query()
+            ->financiallyActive()
             ->selectRaw(
                 'YEAR(transaction_date) as year, MONTH(transaction_date) as month, sum(amount) as total'
             )
@@ -28,6 +29,7 @@ class TransactionsBalanceController extends Controller
             ->toArray();
 
         $expense = Transaction::query()
+            ->financiallyActive()
             ->selectRaw(
                 'YEAR(transaction_date) as year, MONTH(transaction_date) as month, sum(amount) as total'
             )

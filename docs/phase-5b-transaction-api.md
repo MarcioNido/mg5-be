@@ -92,6 +92,8 @@ parent ID without a second endpoint.
   "status": "posted",
   "origin": "csv",
   "posted_at": "2026-08-20T14:12:00.000000Z",
+  "ignored_at": null,
+  "is_ignored": false,
   "category_id": 8,
   "category": {
     "id": 8,
@@ -127,7 +129,8 @@ parent ID without a second endpoint.
   ],
   "is_import_linked": true,
   "bank_fields_editable": false,
-  "deletable": false
+  "deletable": false,
+  "can_ignore": true
 }
 ```
 
@@ -180,6 +183,14 @@ A transaction is import-linked if either `import_rows` or
 - changing a protected field returns `422` with a public validation message;
 - direct deletion returns `422`.
 
+An import-linked transaction also accepts `ignored: true|false` through PATCH.
+Ignoring is the reversible resolution for a false duplicate: the original bank
+record and import identity remain stored and visible, while `ignored_at` removes
+the transaction from balances, dashboard activity, rules, matching, legacy
+summaries, and reconciliation. Restoring clears `ignored_at`. Either transition
+recalculates affected reconciliations. Manual/unlinked transactions cannot use
+this marker because they remain directly editable and deletable.
+
 An unlinked manual transaction is deletable under the current domain rules.
 Deletion remains soft deletion and triggers reconciliation recalculation when
 applicable.
@@ -189,6 +200,8 @@ applicable.
 - `is_import_linked`: true for a link through either import relation.
 - `bank_fields_editable`: false exactly when import-linked.
 - `deletable`: false exactly when import-linked under the current rules.
+- `can_ignore`: true exactly when import-linked.
+- `is_ignored` and nullable `ignored_at`: the current reversible exclusion state.
 
 The Phase 5B.2 UI should use these flags for controls and guidance, while still
 handling server validation because capabilities can change between reads and

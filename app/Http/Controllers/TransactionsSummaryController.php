@@ -10,6 +10,7 @@ class TransactionsSummaryController extends Controller
     public function monthlyIncome(int $month, int $year): array
     {
         $transactions = Transaction::query()
+            ->financiallyActive()
             ->where(
                 'transaction_date',
                 '>=',
@@ -36,6 +37,7 @@ class TransactionsSummaryController extends Controller
     public function monthlyExpense(int $month, int $year): array
     {
         $transactions = Transaction::query()
+            ->financiallyActive()
             ->where(
                 'transaction_date',
                 '>=',
