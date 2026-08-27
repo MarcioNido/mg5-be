@@ -73,6 +73,11 @@ class Phase5DReconciliationApiTest extends ApiTestCase
             ->assertExactJson(['data' => [
                 'statement_date' => '2026-02-28',
                 'calculated_balance' => '0.0000',
+                'review_period' => [
+                    'date_from' => null,
+                    'date_to' => '2026-02-28',
+                    'previous_statement_date' => null,
+                ],
             ]]);
         $this->assertDatabaseCount('reconciliations', 0);
     }
@@ -94,6 +99,30 @@ class Phase5DReconciliationApiTest extends ApiTestCase
         $this->getJson("/api/accounts/{$account->id}/reconciliations/preview?statement_date=2026-01-31")
             ->assertOk()
             ->assertJsonPath('data.calculated_balance', '90.0000');
+    }
+
+    public function test_preview_returns_the_transaction_review_period_after_the_latest_prior_valid_reconciliation(): void
+    {
+        $this->actingAsAdmin();
+        $account = Account::factory()->create([
+            'opening_balance' => '0',
+            'opening_balance_date' => '2026-01-10',
+        ]);
+        $service = app(ReconciliationService::class);
+
+        $service->reconcile($account, '2026-01-31', '0');
+        $service->reconcile($account, '2026-02-15', '1');
+
+        $this->getJson("/api/accounts/{$account->id}/reconciliations/preview?statement_date=2026-02-28")
+            ->assertOk()
+            ->assertJsonPath('data.review_period.date_from', '2026-02-01')
+            ->assertJsonPath('data.review_period.date_to', '2026-02-28')
+            ->assertJsonPath('data.review_period.previous_statement_date', '2026-01-31');
+
+        $this->getJson("/api/accounts/{$account->id}/reconciliations/preview?statement_date=2026-01-31")
+            ->assertOk()
+            ->assertJsonPath('data.review_period.date_from', '2026-01-11')
+            ->assertJsonPath('data.review_period.previous_statement_date', null);
     }
 
     public function test_history_is_paginated_ordered_and_has_an_explicit_safe_contract(): void

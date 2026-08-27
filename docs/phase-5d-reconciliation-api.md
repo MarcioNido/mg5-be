@@ -37,13 +37,24 @@ excluded. Category, description, notes, and splits do not participate.
 `GET /api/accounts/{account}/reconciliations/preview?statement_date=YYYY-MM-DD`
 
 `statement_date` is required and must be a strict valid `YYYY-MM-DD` civil date.
+
+The preview also returns `review_period`. Its `date_from` is the day after the
+latest prior valid reconciliation, falling back to the day after the account's
+opening balance date. It is `null` when neither checkpoint exists. `date_to`
+always matches the requested statement date. This range can be passed directly
+to the transaction list without persisting review state.
 Preview is read-only and creates no history row.
 
 ```json
 {
   "data": {
     "statement_date": "2026-08-31",
-    "calculated_balance": "1250.4000"
+    "calculated_balance": "1250.4000",
+    "review_period": {
+      "date_from": "2026-08-01",
+      "date_to": "2026-08-31",
+      "previous_statement_date": "2026-07-31"
+    }
   }
 }
 ```

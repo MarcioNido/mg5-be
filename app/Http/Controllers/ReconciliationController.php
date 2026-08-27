@@ -36,6 +36,7 @@ class ReconciliationController extends Controller
         return new ReconciliationPreviewResource([
             'statement_date' => $statementDate,
             'calculated_balance' => $service->calculate($account, $statementDate),
+            'review_period' => $service->reviewPeriod($account, $statementDate),
         ]);
     }
 

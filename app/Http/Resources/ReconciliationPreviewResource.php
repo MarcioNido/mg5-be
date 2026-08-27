@@ -12,6 +12,7 @@ class ReconciliationPreviewResource extends JsonResource
         return [
             'statement_date' => $this->resource['statement_date'],
             'calculated_balance' => Money::decimal(Money::units($this->resource['calculated_balance'])),
+            'review_period' => $this->resource['review_period'],
         ];
     }
 }

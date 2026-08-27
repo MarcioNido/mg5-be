@@ -43,6 +43,24 @@ class ReconciliationService
         );
     }
 
+    public function reviewPeriod(Account $account, Carbon|string $statementDate): array
+    {
+        $dateTo = Carbon::parse($statementDate, config('app.business_timezone'))->toDateString();
+        $previous = $account->reconciliations()
+            ->whereNotNull('reconciled_at')
+            ->whereDate('statement_date', '<', $dateTo)
+            ->orderByDesc('statement_date')
+            ->orderByDesc('id')
+            ->first();
+        $checkpoint = $previous?->statement_date ?? $account->opening_balance_date;
+
+        return [
+            'date_from' => $checkpoint?->copy()->addDay()->toDateString(),
+            'date_to' => $dateTo,
+            'previous_statement_date' => $previous?->statement_date->toDateString(),
+        ];
+    }
+
     public function recalculate(Account $account, ?string $fromDate = null): void
     {
         $account->reconciliations()
