@@ -76,6 +76,9 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function (): void {
 });
 
 Route::middleware(['auth:sanctum', 'tenant'])
+    ->patch('/transactions/bulk-category', [TransactionController::class, 'bulkCategorize']);
+
+Route::middleware(['auth:sanctum', 'tenant'])
     ->resource('/transactions', TransactionController::class)
     ->only(['index', 'store', 'show', 'update', 'destroy']);
 

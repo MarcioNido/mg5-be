@@ -356,6 +356,79 @@ class Phase5BTransactionApiTest extends ApiTestCase
         $this->assertNull($manual->fresh()->ignored_at);
     }
 
+    public function test_bulk_category_updates_manual_and_imported_transactions_atomically(): void
+    {
+        $this->actingAsAdmin();
+        $account = Account::factory()->create();
+        $oldCategory = Category::factory()->create();
+        $parent = Category::factory()->create(['name' => 'Revenue']);
+        $category = Category::factory()->create(['parent_id' => $parent->id, 'name' => 'Patient services']);
+        $manual = $this->transaction($account, '2026-08-04', ['category_id' => null]);
+        $imported = $this->transaction($account, '2026-08-05', [
+            'category_id' => $oldCategory->id,
+            'status' => TransactionStatus::Posted,
+            'origin' => TransactionOrigin::Csv,
+        ]);
+        $this->linkImport($imported);
+
+        $this->patchJson('/api/transactions/bulk-category', [
+            'transaction_ids' => [$manual->id, $imported->id],
+            'category_id' => $category->id,
+        ])->assertOk()
+            ->assertJsonPath('data.updated_count', 2)
+            ->assertJsonPath('data.category.id', $category->id)
+            ->assertJsonPath('data.category.parent.id', $parent->id);
+        Tenant::query()->where('slug', 'personal')->firstOrFail()->makeCurrent();
+
+        $this->assertSame($category->id, $manual->fresh()->category_id);
+        $this->assertSame($category->id, $imported->fresh()->category_id);
+        $this->assertTrue($imported->isLinkedToImport());
+    }
+
+    public function test_bulk_category_rejects_splits_ignored_duplicates_and_cross_tenant_ids(): void
+    {
+        $this->actingAsAdmin();
+        $personal = Tenant::query()->where('slug', 'personal')->firstOrFail();
+        $clinic = Tenant::query()->where('slug', 'clinic')->firstOrFail();
+        $account = Account::factory()->create();
+        $original = Category::factory()->create();
+        $replacement = Category::factory()->create();
+        $plain = $this->transaction($account, '2026-08-06', ['category_id' => $original->id]);
+        $split = $this->transaction($account, '2026-08-07', ['category_id' => null]);
+        app(TransactionSplitService::class)->replace($split, [
+            ['category_id' => $original->id, 'amount' => '-10.0000'],
+        ]);
+
+        $this->patchJson('/api/transactions/bulk-category', [
+            'transaction_ids' => [$plain->id, $split->id],
+            'category_id' => $replacement->id,
+        ])->assertUnprocessable()->assertJsonValidationErrors('transaction_ids');
+        $personal->makeCurrent();
+        $this->assertSame($original->id, $plain->fresh()->category_id);
+
+        $ignored = $this->transaction($account, '2026-08-08', [
+            'status' => TransactionStatus::Posted,
+            'origin' => TransactionOrigin::Csv,
+        ]);
+        $this->linkImport($ignored);
+        $ignored->update(['ignored_at' => now()]);
+        $this->patchJson('/api/transactions/bulk-category', [
+            'transaction_ids' => [$ignored->id],
+            'category_id' => $replacement->id,
+        ])->assertUnprocessable()->assertJsonValidationErrors('transaction_ids.0');
+
+        $clinicTransaction = $clinic->execute(function (): Transaction {
+            $account = Account::factory()->create();
+
+            return $this->transaction($account, '2026-08-09');
+        });
+        $personal->makeCurrent();
+        $this->patchJson('/api/transactions/bulk-category', [
+            'transaction_ids' => [$clinicTransaction->id],
+            'category_id' => $replacement->id,
+        ])->assertUnprocessable()->assertJsonValidationErrors('transaction_ids.0');
+    }
+
     public function test_filter_ids_and_route_binding_cannot_cross_tenants(): void
     {
         $this->actingAsAdmin();

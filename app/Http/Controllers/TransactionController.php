@@ -4,17 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Enums\TransactionOrigin;
 use App\Enums\TransactionStatus;
+use App\Http\Requests\BulkCategorizeTransactionsRequest;
 use App\Http\Requests\IndexTransactionRequest;
 use App\Http\Requests\StoreTransactionRequest;
 use App\Http\Requests\UpdateTransactionRequest;
+use App\Http\Resources\CategoryResource;
 use App\Http\Resources\TransactionResource;
 use App\Models\Category;
 use App\Models\Transaction;
 use App\Services\TransactionResourceLoader;
 use App\Services\TransactionSplitService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class TransactionController extends Controller
 {
@@ -74,6 +78,54 @@ class TransactionController extends Controller
         });
 
         return new TransactionResource($this->resourceLoader->prepare($transaction));
+    }
+
+    public function bulkCategorize(BulkCategorizeTransactionsRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+        $ids = $validated['transaction_ids'];
+        $categoryId = $validated['category_id'];
+
+        [$updatedCount, $category] = DB::transaction(function () use ($ids, $categoryId): array {
+            $category = Category::query()->whereKey($categoryId)->lockForUpdate()->first();
+            if ($category === null) {
+                throw ValidationException::withMessages([
+                    'category_id' => 'The selected category is no longer available.',
+                ]);
+            }
+
+            $transactions = Transaction::query()
+                ->financiallyActive()
+                ->whereKey($ids)
+                ->withExists('splits')
+                ->lockForUpdate()
+                ->get();
+
+            if ($transactions->count() !== count($ids)) {
+                throw ValidationException::withMessages([
+                    'transaction_ids' => 'One or more selected transactions are no longer available.',
+                ]);
+            }
+
+            if ($transactions->contains(fn (Transaction $transaction): bool => $transaction->splits_exists)) {
+                throw ValidationException::withMessages([
+                    'transaction_ids' => 'Transactions with category splits must be categorized individually.',
+                ]);
+            }
+
+            $updatedCount = Transaction::query()
+                ->whereKey($ids)
+                ->update(['category_id' => $category->id, 'updated_at' => now()]);
+
+            return [$updatedCount, $category];
+        });
+
+        return new JsonResponse([
+            'data' => [
+                'updated_count' => $updatedCount,
+                'category' => (new CategoryResource($category->load('parent')))->resolve(),
+            ],
+        ]);
     }
 
     public function show(Transaction $transaction): TransactionResource

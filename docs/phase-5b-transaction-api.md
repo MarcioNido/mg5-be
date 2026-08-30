@@ -23,6 +23,7 @@ BFF.
 - `GET /api/transactions/{transaction}`
 - `PATCH|PUT /api/transactions/{transaction}`
 - `DELETE /api/transactions/{transaction}`
+- `PATCH /api/transactions/bulk-category`
 
 Index, show, store, and update return the same transaction resource. Index is a
 standard Laravel paginated resource with `data`, `links`, and `meta`. Store
@@ -194,6 +195,20 @@ this marker because they remain directly editable and deletable.
 An unlinked manual transaction is deletable under the current domain rules.
 Deletion remains soft deletion and triggers reconciliation recalculation when
 applicable.
+
+## Bulk categorization
+
+`PATCH /api/transactions/bulk-category` accepts one `category_id` and between
+one and 200 distinct `transaction_ids`. The category and every transaction must
+belong to the selected tenant and remain active. Imported transactions are
+eligible because categorization is enrichment, while ignored transactions and
+transactions with category splits are rejected.
+
+The server locks and validates the complete selection before updating it in one
+database transaction. Existing direct categories are replaced; bank fields,
+import links, and reconciliation values are unchanged. Any stale, invalid, or
+split item rejects the complete batch. A successful response returns
+`updated_count` and the public category resource.
 
 ## Capability flags
 
